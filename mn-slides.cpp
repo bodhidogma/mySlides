@@ -292,64 +292,38 @@ FIBITMAP *CreateImage( string &name )
 	FIBITMAP *p = FreeImage_Load(fifmt, name.c_str(),0);
 
 	FITAG *tag = NULL;
+	FreeImage_GetMetadata(FIMD_EXIF_MAIN, p, "Orientation", &tag);
+	short *rot = 0;
+	if (tag != NULL) {
+		rot = (short*)FreeImage_GetTagValue(tag);
+		cout << "\tOrientation: " << *rot << "\n";
+	}
+	// http://sylvana.net/jpegcrop/exif_orientation.html
+
+	switch (*rot) {
+	case 3:		// CCW-180
+		p = FreeImage_RotateClassic(p, 180);
+		break;
+	case 6:		// CCW-270
+		p = FreeImage_RotateClassic(p, 270);
+		break;
+	case 8:		// CCW-90
+		p = FreeImage_RotateClassic(p, 90);
+		break;
+	}
+/*
 	FIMETADATA *mdhandle = NULL;
 	mdhandle = FreeImage_FindFirstMetadata(FIMD_EXIF_MAIN, p, &tag);
 	if(mdhandle) {
 		do {
 		// process the tag
-			cout << "\t" << FreeImage_GetTagKey(tag) << ":" << (char *)FreeImage_GetTagValue(tag) << "\n";
+			cout << "\t" << FreeImage_GetTagKey(tag) 
+				<< ":" << (char *)FreeImage_GetTagValue(tag) 
+				<< "\n";
 		// ...
 		} while(FreeImage_FindNextMetadata(mdhandle, &tag));
 		FreeImage_FindCloseMetadata(mdhandle);
 	}
-/*
-    FIBITMAP *p = new JPEG_CORE_PROPERTIES;
-    try
-    {
-        if( ijlInit( p ) != IJL_OK )
-            throw "Cannot initialize Intel JPEG library\n";
-        p->JPGFile = name.c_str();
-        if( ijlRead( p, IJL_JFILE_READPARAMS ) != IJL_OK )
-            throw "Cannot read JPEG file header\n";
-        switch( p->JPGChannels )
-        {
-            case 1:  p->JPGColor    = IJL_G;
-                     p->DIBChannels = 3;
-                     p->DIBColor    = IJL_BGR;
-                     break;
-            case 3:  p->JPGColor    = IJL_YCBCR;
-                     p->DIBChannels = 3;
-                     p->DIBColor    = IJL_BGR;
-                     break;
-            case 4:  p->JPGColor    = IJL_YCBCRA_FPX;
-                     p->DIBChannels = 4;
-                     p->DIBColor    = IJL_RGBA_FPX;
-                     break;
-            default: p->DIBColor = (IJL_COLOR)IJL_OTHER;
-                     p->JPGColor = (IJL_COLOR) IJL_OTHER;
-                     p->DIBChannels = p->JPGChannels;
-                     break;
-        }
-        p->DIBWidth    = p->JPGWidth;
-        p->DIBHeight   = p->JPGHeight;
-        p->DIBPadBytes = IJL_DIB_PAD_BYTES( p->DIBWidth, p->DIBChannels );
-        int imageSize = p->DIBWidth * p->DIBChannels + p->DIBPadBytes;
-        imageSize *= p->DIBHeight;
-        p->DIBBytes = new BYTE[ imageSize ];
-        if ( ijlRead( p, IJL_JFILE_READWHOLEIMAGE ) != IJL_OK )
-            throw "Cannot read image data\n";
-        if ( p->DIBColor == IJL_RGBA_FPX )
-            throw "Conversion code needed here. Left out of the demo program\n";
-    } 
-    catch( const char *s )
-    {
-        cout << s;
-        if ( p->DIBBytes )
-            delete[] p->DIBBytes;
-        ijlFree( p );
-        delete p;
-        return 0;
-    }
 */
     return p;
 }
