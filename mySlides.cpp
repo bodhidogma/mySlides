@@ -297,26 +297,28 @@ FIBITMAP *ReadImage( string &imageName )
 	FREE_IMAGE_FORMAT fifmt = FreeImage_GetFileType(imageName.c_str(),0);
 	FIBITMAP *p = FreeImage_Load(fifmt, imageName.c_str(),0);
 
-	FITAG *tag = NULL;
-	FreeImage_GetMetadata(FIMD_EXIF_MAIN, p, "Orientation", &tag);
-	short *rot = 0;
-	if (tag != NULL) {
-		rot = (short*)FreeImage_GetTagValue(tag);
-		cout << "\tOrientation: " << *rot << "\n";
-	}
-	// http://sylvana.net/jpegcrop/exif_orientation.html
+	if (p)
+	{
+		FITAG *tag = NULL;
+		FreeImage_GetMetadata(FIMD_EXIF_MAIN, p, "Orientation", &tag);
+		short *rot = 0;
+		if (tag != NULL) {
+			rot = (short*)FreeImage_GetTagValue(tag);
+			cout << "\tOrientation: " << *rot << "\n";
+		}
+		// http://sylvana.net/jpegcrop/exif_orientation.html
 
-	switch (*rot) {
-	case 3:		// CCW-180
-		p = FreeImage_RotateClassic(p, 180);
-		break;
-	case 6:		// CCW-270
-		p = FreeImage_RotateClassic(p, 270);
-		break;
-	case 8:		// CCW-90
-		p = FreeImage_RotateClassic(p, 90);
-		break;
+		switch (*rot) {
+		case 3:		// CCW-180
+			p = FreeImage_RotateClassic(p, 180);
+			break;
+		case 6:		// CCW-270
+			p = FreeImage_RotateClassic(p, 270);
+			break;
+		case 8:		// CCW-90
+			p = FreeImage_RotateClassic(p, 90);
+			break;
+		}
 	}
-
 	return p;
 }
