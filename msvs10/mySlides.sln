@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual C++ Express 2010
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "win-slides", "win-slides.vcxproj", "{28B36773-19DB-4C9E-8A72-218EC277633D}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mySlides", "mySlides.vcxproj", "{28B36773-19DB-4C9E-8A72-218EC277633D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -15,38 +15,38 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="ReadMe.txt" />
-    <None Include="small.ico">
+    <None Include="..\README" />
+    <None Include="..\mySlides-small.ico">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="win-slides.ico">
+    <None Include="..\mySlides.ico">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="stdafx.h">
+    <ClInclude Include="..\Resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="targetver.h">
+    <ClInclude Include="..\stdafx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Resource.h">
+    <ClInclude Include="..\mySlides.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="win-slides.h">
+    <ClInclude Include="..\FreeImage.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="stdafx.cpp">
+    <ClCompile Include="..\stdafx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="win-slides.cpp">
+    <ClCompile Include="..\mySlides.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="win-slides.rc">
+    <ResourceCompile Include="..\mySlides.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>
