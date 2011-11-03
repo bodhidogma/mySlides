@@ -19,21 +19,21 @@ HWND				InitInstance(HINSTANCE, int);
 LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK	About(HWND, UINT, WPARAM, LPARAM);
 
-void LoadFileNames( wstring base, vector<wstring> &collection );
-int PaintImage(HWND hWnd, SlideData *slide);
+void LoadFileNames( tstring base, vector<tstring> &collection );
+int PaintImageGDI(HWND hWnd, SlideData *slide);
 FIBITMAP *LoadImage( SlideData *slide, long maxWidth, long maxHeight );
 
 // ----
 struct SlideData
 {
-	SlideData (wchar_t *base) {
+	SlideData (TCHAR *base) {
 		searchBase = base;
 		current_picture = 0;
 		pImage = 0;
 	}
-	wstring searchBase;
+	tstring searchBase;
 	int current_picture;
-	vector<wstring> picture_names;
+	vector<tstring> picture_names;
 	FIBITMAP *pImage;
 	int width, height;
 };
@@ -66,10 +66,10 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_MYSLIDES));
 
 	// set initial path for images, save data to USERDATA block and kick off timer
-	SlideData data( L"images" );
+	SlideData data( _T("images") );
 	SetWindowLong( hWnd, GWL_USERDATA, (long)&data );
 	SendMessage( hWnd, WM_TIMER, 0,0 );
-	SetTimer( hWnd, 101, 5000, 0 );
+	SetTimer( hWnd, 101, 3000, 0 );
 
 	// Main message loop:
 	while (GetMessage(&msg, NULL, 0, 0))
@@ -106,14 +106,16 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 
 	wcex.cbSize = sizeof(WNDCLASSEX);
 
-	wcex.style			= CS_HREDRAW | CS_VREDRAW;
+//	wcex.style			= CS_HREDRAW | CS_VREDRAW;
+	wcex.style			= CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
 	wcex.lpfnWndProc	= WndProc;
 	wcex.cbClsExtra		= 0;
 	wcex.cbWndExtra		= 0;
 	wcex.hInstance		= hInstance;
 	wcex.hIcon			= LoadIcon(hInstance, MAKEINTRESOURCE(IDI_MYSLIDES));
 	wcex.hCursor		= LoadCursor(NULL, IDC_ARROW);
-	wcex.hbrBackground	= (HBRUSH)(COLOR_WINDOW+1);
+//	wcex.hbrBackground	= (HBRUSH)(COLOR_WINDOW+1);
+	wcex.hbrBackground	= (HBRUSH)GetStockObject(BLACK_BRUSH);
 	wcex.lpszMenuName	= MAKEINTRESOURCE(IDC_MYSLIDES);
 	wcex.lpszClassName	= szWindowClass;
 	wcex.hIconSm		= LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
@@ -140,6 +142,7 @@ HWND InitInstance(HINSTANCE hInstance, int nCmdShow)
    hInst = hInstance; // Store instance handle in our global variable
 
    hWnd = CreateWindow(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+//      CW_USEDEFAULT, 0, 320, 240, NULL, NULL, hInstance, NULL);
       CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
 
    if (hWnd)
@@ -189,7 +192,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		break;
 	case WM_PAINT:
-		PaintImage( hWnd, slide );
+		if (slide) 
+		{
+			PaintImageGDI( hWnd, slide );
+		}
 		break;
 	case WM_TIMER:
 		if (slide->current_picture == slide->picture_names.size() )
@@ -202,7 +208,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (slide->pImage )
 		{
 			FreeImage_Unload( slide->pImage );
-			delete slide->pImage;
+			//delete slide->pImage;
 		}
 		slide->pImage = LoadImage(slide, maxWidth,maxHeight);
 		InvalidateRect(hWnd, 0, FALSE);
@@ -215,7 +221,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (slide->pImage )
 		{
 			FreeImage_Unload( slide->pImage );
-			delete slide->pImage;
+			//delete slide->pImage;
 			slide->pImage = 0;
 		}
 		break;
@@ -249,7 +255,7 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 /**
 */
-int PaintImage(HWND hWnd, SlideData *slide)
+int PaintImageGDI(HWND hWnd, SlideData *slide)
 {
 	PAINTSTRUCT ps;
 	HDC hdc;
@@ -258,10 +264,10 @@ int PaintImage(HWND hWnd, SlideData *slide)
 	GetClientRect( hWnd, &r );
 
 	hdc = BeginPaint(hWnd, &ps);
-//	HBRUSH br = GetSysColorBrush( COLOR_BACKGROUND );
-//	FillRect( hdc, &r, br );
+	HBRUSH br = GetSysColorBrush( COLOR_BACKGROUND );
+	FillRect( hdc, &r, br );
 
-	if (slide->pImage)
+	if (slide && slide->pImage)
 	{
 		int winWidth = r.right;
 		int winHeight = r.bottom;
@@ -289,6 +295,20 @@ int PaintImage(HWND hWnd, SlideData *slide)
 			DIB_RGB_COLORS,
 			SRCCOPY );
 	}
+
+	LOGFONT f = {0};
+	f.lfHeight = 24;
+	//f.lfItalic = TRUE;
+	strcpy( f.lfFaceName, _T("Comic Sans MS"));
+	HFONT font = CreateFontIndirect(&f);
+	SelectObject(hdc, font);
+
+//	SetBkColor(hdc, COLOR_BACKGROUND);
+	SetBkMode(hdc, TRANSPARENT);
+	SetTextColor(hdc, RGB(0xFF,0xFF,0));
+	tstring slide_name = slide->picture_names[slide->current_picture-1];
+	DrawText(hdc, slide_name.c_str(), -1,&r, DT_CENTER);
+
 	EndPaint(hWnd, &ps);
 	return 0;
 }
@@ -296,12 +316,12 @@ int PaintImage(HWND hWnd, SlideData *slide)
 
 /**
 */
-void LoadFileNames( wstring base, vector<wstring> &collection )
+void LoadFileNames( tstring base, vector<tstring> &collection )
 {
     if ( base.end()[ -1 ] != '/' )
         base += '/';
     WIN32_FIND_DATA fd;
-    HANDLE h = FindFirstFile( ( base + L"*.jpg" ).c_str(), &fd );
+    HANDLE h = FindFirstFile( ( base + _T("*.jpg") ).c_str(), &fd );
     if ( h != INVALID_HANDLE_VALUE ) {
         bool done = false;
         while ( !done ) {
@@ -311,12 +331,12 @@ void LoadFileNames( wstring base, vector<wstring> &collection )
         }
         FindClose( h );
     }
-    h = FindFirstFile( ( base + L"*" ).c_str(), &fd );
+    h = FindFirstFile( ( base + _T("*") ).c_str(), &fd );
     if ( h != INVALID_HANDLE_VALUE ) {
         bool done = false;
         while ( !done ) {
-            const wstring name = fd.cFileName;
-            if ( name != L"." && name != L".." ) 
+            const tstring name = fd.cFileName;
+            if ( name != _T(".") && name != _T("..") ) 
             {
                 if ( fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY )
                     LoadFileNames( base + fd.cFileName, collection );
@@ -331,18 +351,18 @@ void LoadFileNames( wstring base, vector<wstring> &collection )
 */
 FIBITMAP *LoadImage( SlideData *slide, long maxWidth, long maxHeight )
 {
-	wstring imageName = slide->picture_names[ slide->current_picture ];
+	tstring imageName = slide->picture_names[ slide->current_picture ];
 	FIBITMAP *p = 0;
-	FREE_IMAGE_FORMAT fifmt = FreeImage_GetFileTypeU(imageName.c_str(),0);
+	FREE_IMAGE_FORMAT fifmt = _tFreeImage_GetFileType(imageName.c_str(),0);
 	switch (fifmt)
 	{
 #ifdef JPEG_EXIFROTATE
 	case FIF_JPEG:
-		p = FreeImage_LoadU(fifmt, imageName.c_str(),JPEG_EXIFROTATE);
+		p = _tFreeImage_Load(fifmt, imageName.c_str(),JPEG_EXIFROTATE);
 		break;
 #endif
 	default:
-		p = FreeImage_LoadU(fifmt, imageName.c_str(),0);
+		p = _tFreeImage_Load(fifmt, imageName.c_str(),0);
 	}
 	
 	if (p)

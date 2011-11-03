@@ -4,10 +4,21 @@
 //
 
 #pragma once
+//#pragma comment(linker, "/IGNORE:4786")
 
 //#include "targetver.h"
 
 //#undef UNICODE
+//#define UNICODE
+#ifdef UNICODE
+#define tstring wstring
+#define _tFreeImage_GetFileType FreeImage_GetFileTypeU
+#define _tFreeImage_Load FreeImage_LoadU
+#else
+#define tstring string
+#define _tFreeImage_GetFileType FreeImage_GetFileType
+#define _tFreeImage_Load FreeImage_Load
+#endif
 
 #define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
 // Windows Header Files:
@@ -26,6 +37,9 @@
 #include <ctime>
 #include <algorithm>
 using namespace std;
+
+#include <GL/gl.h>
+#include <GL/glu.h>
 
 // Additional headers
 #include "FreeImage.h"
