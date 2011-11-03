@@ -6,6 +6,8 @@
 
 #define MAX_LOADSTRING 100
 
+struct SlideData;
+
 // Global Variables:
 HINSTANCE hInst;								// current instance
 TCHAR szTitle[MAX_LOADSTRING];					// The title bar text
@@ -13,12 +15,28 @@ TCHAR szWindowClass[MAX_LOADSTRING];			// the main window class name
 
 // Forward declarations of functions included in this code module:
 ATOM				MyRegisterClass(HINSTANCE hInstance);
-BOOL				InitInstance(HINSTANCE, int);
+HWND				InitInstance(HINSTANCE, int);
 LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK	About(HWND, UINT, WPARAM, LPARAM);
 
-int PaintImage(HWND hWnd);
-FIBITMAP *ReadImage( string &imageName );
+void LoadFileNames( wstring base, vector<wstring> &collection );
+int PaintImage(HWND hWnd, SlideData *slide);
+FIBITMAP *LoadImage( SlideData *slide, long maxWidth, long maxHeight );
+
+// ----
+struct SlideData
+{
+	SlideData (wchar_t *base) {
+		searchBase = base;
+		current_picture = 0;
+		pImage = 0;
+	}
+	wstring searchBase;
+	int current_picture;
+	vector<wstring> picture_names;
+	FIBITMAP *pImage;
+	int width, height;
+};
 
 /**
 */
@@ -40,12 +58,18 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	MyRegisterClass(hInstance);
 
 	// Perform application initialization:
-	if (!InitInstance (hInstance, nCmdShow))
+	HWND hWnd = InitInstance (hInstance, nCmdShow);
+	if (!hWnd)
 	{
 		return FALSE;
 	}
-
 	hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_MYSLIDES));
+
+	// set initial path for images, save data to USERDATA block and kick off timer
+	SlideData data( L"images" );
+	SetWindowLong( hWnd, GWL_USERDATA, (long)&data );
+	SendMessage( hWnd, WM_TIMER, 0,0 );
+	SetTimer( hWnd, 101, 5000, 0 );
 
 	// Main message loop:
 	while (GetMessage(&msg, NULL, 0, 0))
@@ -59,7 +83,6 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 	return (int) msg.wParam;
 }
-
 
 
 //
@@ -110,7 +133,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 //
 /**
 */
-BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
+HWND InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    HWND hWnd;
 
@@ -119,15 +142,12 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    hWnd = CreateWindow(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
       CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
 
-   if (!hWnd)
+   if (hWnd)
    {
-      return FALSE;
+	   ShowWindow(hWnd, nCmdShow);
+	   UpdateWindow(hWnd);
    }
-
-   ShowWindow(hWnd, nCmdShow);
-   UpdateWindow(hWnd);
-
-   return TRUE;
+   return hWnd;
 }
 
 //
@@ -145,6 +165,10 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	int wmId, wmEvent;
+    static const int maxWidth = GetSystemMetrics( SM_CXSCREEN );
+    static const int maxHeight = GetSystemMetrics( SM_CYSCREEN );
+
+    SlideData *slide = (SlideData *) GetWindowLong( hWnd, GWL_USERDATA );
 
 	switch (message)
 	{
@@ -155,7 +179,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		switch (wmId)
 		{
 		case IDM_ABOUT:
-//			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
 			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, (DLGPROC)About);
 			break;
 		case IDM_EXIT:
@@ -166,10 +189,35 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		break;
 	case WM_PAINT:
-		PaintImage( hWnd );
+		PaintImage( hWnd, slide );
+		break;
+	case WM_TIMER:
+		if (slide->current_picture == slide->picture_names.size() )
+		{
+			slide->picture_names.resize(0);
+			LoadFileNames( slide->searchBase, slide->picture_names );
+			random_shuffle( slide->picture_names.begin(), slide->picture_names.end() );
+			slide->current_picture = 0;
+		}
+		if (slide->pImage )
+		{
+			FreeImage_Unload( slide->pImage );
+			delete slide->pImage;
+		}
+		slide->pImage = LoadImage(slide, maxWidth,maxHeight);
+		InvalidateRect(hWnd, 0, FALSE);
+		slide->current_picture++;
 		break;
 	case WM_DESTROY:
 		PostQuitMessage(0);
+		break;
+	case WM_QUIT:
+		if (slide->pImage )
+		{
+			FreeImage_Unload( slide->pImage );
+			delete slide->pImage;
+			slide->pImage = 0;
+		}
 		break;
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
@@ -201,7 +249,7 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 /**
 */
-int PaintImage(HWND hWnd)
+int PaintImage(HWND hWnd, SlideData *slide)
 {
 	PAINTSTRUCT ps;
 	HDC hdc;
@@ -213,22 +261,16 @@ int PaintImage(HWND hWnd)
 //	HBRUSH br = GetSysColorBrush( COLOR_BACKGROUND );
 //	FillRect( hdc, &r, br );
 
-	std::string imageName = "images\\IMG_0138.JPG";
-	FIBITMAP *pImage = ReadImage( imageName  );
-
-	if (pImage)
+	if (slide->pImage)
 	{
 		int winWidth = r.right;
 		int winHeight = r.bottom;
 
-		long imgWidth = FreeImage_GetWidth( pImage );
-		long imgHeight = FreeImage_GetHeight( pImage );
-
         //
         // Now calculate stretch factor
         //
-        float x_stretch = (float) winWidth / imgWidth;
-        float y_stretch = (float) winHeight / imgHeight;
+		float x_stretch = (float) winWidth / slide->width;
+		float y_stretch = (float) winHeight / slide->height;
         float stretch;
         if ( x_stretch < 1 || y_stretch < 1 )
             stretch = x_stretch < y_stretch ? x_stretch : y_stretch;
@@ -236,17 +278,16 @@ int PaintImage(HWND hWnd)
             stretch = x_stretch < y_stretch ? x_stretch : y_stretch;
         SetStretchBltMode( hdc, COLORONCOLOR );
         StretchDIBits( hdc, 
-                       ( winWidth - imgWidth * stretch ) / 2,   //XDest
-                       ( winHeight - imgHeight * stretch ) / 2, //YDest
-                       imgWidth * stretch + .5,              //DestHeight
-                       imgHeight * stretch + .5,             //DestWidth
-                       0, 0,                                            //XSrc, YSrc
-                       imgWidth, imgHeight,       //SrcHeight, SrcWidth
-                       FreeImage_GetBits(pImage),
-                       FreeImage_GetInfo(pImage),
-                       DIB_RGB_COLORS,
-                       SRCCOPY );
-
+			(int)( winWidth - slide->width * stretch ) / 2,   //XDest
+			(int)( winHeight - slide->height * stretch ) / 2, //YDest
+			(int)((slide->width * stretch) + .5),				//DestHeight
+			(int)((slide->height * stretch) + .5),				//DestWidth
+			0, 0,                                       //XSrc, YSrc
+			slide->width, slide->height,       //SrcHeight, SrcWidth
+			FreeImage_GetBits(slide->pImage),
+			FreeImage_GetInfo(slide->pImage),
+			DIB_RGB_COLORS,
+			SRCCOPY );
 	}
 	EndPaint(hWnd, &ps);
 	return 0;
@@ -255,13 +296,12 @@ int PaintImage(HWND hWnd)
 
 /**
 */
-#if 0
-void LoadFileNames( string base, vector<string> &collection )
+void LoadFileNames( wstring base, vector<wstring> &collection )
 {
     if ( base.end()[ -1 ] != '/' )
         base += '/';
     WIN32_FIND_DATA fd;
-    HANDLE h = FindFirstFile( ( base + "*.jpg" ).c_str(), &fd );
+    HANDLE h = FindFirstFile( ( base + L"*.jpg" ).c_str(), &fd );
     if ( h != INVALID_HANDLE_VALUE ) {
         bool done = false;
         while ( !done ) {
@@ -271,12 +311,12 @@ void LoadFileNames( string base, vector<string> &collection )
         }
         FindClose( h );
     }
-    h = FindFirstFile( ( base + "*" ).c_str(), &fd );
+    h = FindFirstFile( ( base + L"*" ).c_str(), &fd );
     if ( h != INVALID_HANDLE_VALUE ) {
         bool done = false;
         while ( !done ) {
-            const string name = fd.cFileName;
-            if ( name != "." && name != ".." ) 
+            const wstring name = fd.cFileName;
+            if ( name != L"." && name != L".." ) 
             {
                 if ( fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY )
                     LoadFileNames( base + fd.cFileName, collection );
@@ -284,21 +324,48 @@ void LoadFileNames( string base, vector<string> &collection )
             done = !FindNextFile( h, &fd );
         }
         FindClose( h );
-    }
+	}
 }
-#endif
 
 /**
 */
-FIBITMAP *ReadImage( string &imageName )
+FIBITMAP *LoadImage( SlideData *slide, long maxWidth, long maxHeight )
 {
-    cout << "Loading image file " << imageName << "\n";
-
-	FREE_IMAGE_FORMAT fifmt = FreeImage_GetFileType(imageName.c_str(),0);
-	FIBITMAP *p = FreeImage_Load(fifmt, imageName.c_str(),0);
-
+	wstring imageName = slide->picture_names[ slide->current_picture ];
+	FIBITMAP *p = 0;
+	FREE_IMAGE_FORMAT fifmt = FreeImage_GetFileTypeU(imageName.c_str(),0);
+	switch (fifmt)
+	{
+#ifdef JPEG_EXIFROTATE
+	case FIF_JPEG:
+		p = FreeImage_LoadU(fifmt, imageName.c_str(),JPEG_EXIFROTATE);
+		break;
+#endif
+	default:
+		p = FreeImage_LoadU(fifmt, imageName.c_str(),0);
+	}
+	
 	if (p)
 	{
+		long imgWidth =  FreeImage_GetWidth(p);
+		long imgHeight = FreeImage_GetHeight(p);
+
+		float x_stretch = (float) maxWidth / imgWidth;
+        float y_stretch = (float) maxHeight / imgHeight;
+        float stretch;
+        if ( x_stretch < 1 || y_stretch < 1 )
+            stretch = x_stretch < y_stretch ? x_stretch : y_stretch;
+        else
+            stretch = x_stretch < y_stretch ? x_stretch : y_stretch;
+		
+		imgWidth = (long)((imgWidth * stretch) +.5);
+		imgHeight = (long)((imgHeight * stretch) +.5);
+
+		p = FreeImage_Rescale(p, imgWidth,imgHeight, FILTER_BOX);
+		slide->width = imgWidth;
+		slide->height = imgHeight;
+
+#ifndef JPEG_EXIFROTATE
 		FITAG *tag = NULL;
 		FreeImage_GetMetadata(FIMD_EXIF_MAIN, p, "Orientation", &tag);
 		short *rot = 0;
@@ -319,6 +386,7 @@ FIBITMAP *ReadImage( string &imageName )
 			p = FreeImage_RotateClassic(p, 90);
 			break;
 		}
+#endif
 	}
 	return p;
 }
