@@ -13,15 +13,41 @@ HINSTANCE hInst;								// current instance
 TCHAR szTitle[MAX_LOADSTRING];					// The title bar text
 TCHAR szWindowClass[MAX_LOADSTRING];			// the main window class name
 
+//HWND g_hWnd = NULL;
+HDC  g_hDC  = NULL;
+HGLRC g_hRC = NULL;
+//GLuint g_textureID = -1;
+
+struct Vertex
+{
+    // GL_T2F_V3F
+    float tu, tv;
+    float x, y, z;
+};
+
+Vertex g_quadVertices[] =
+{
+    { 0.0f,0.0f, -1.0f,-1.0f, -0.0f },
+    { 1.0f,0.0f,  1.0f,-1.0f, -0.0f },
+    { 1.0f,1.0f,  1.0f, 1.0f, -0.0f },
+    { 0.0f,1.0f, -1.0f, 1.0f, -0.0f }
+};
+
+
 // Forward declarations of functions included in this code module:
 ATOM				MyRegisterClass(HINSTANCE hInstance);
 HWND				InitInstance(HINSTANCE, int);
 LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK	About(HWND, UINT, WPARAM, LPARAM);
 
+void InitGL(HWND hWnd);
+void PaintImageGL( HWND hWnd, SlideData *slide );
+int LoadImageGL( SlideData *slide, long maxWidth, long maxHeight );
+
 void LoadFileNames( tstring base, vector<tstring> &collection );
 int PaintImageGDI(HWND hWnd, SlideData *slide);
 FIBITMAP *LoadImage( SlideData *slide, long maxWidth, long maxHeight );
+void setGLView( int fov, int width, int height );
 
 // ----
 struct SlideData
@@ -30,12 +56,14 @@ struct SlideData
 		searchBase = base;
 		current_picture = 0;
 		pImage = 0;
+		textureID = -1;
 	}
 	tstring searchBase;
 	int current_picture;
 	vector<tstring> picture_names;
 	FIBITMAP *pImage;
 	int width, height;
+	GLuint textureID;
 };
 
 /**
@@ -63,6 +91,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	{
 		return FALSE;
 	}
+	InitGL(hWnd);
 	hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_MYSLIDES));
 
 	// set initial path for images, save data to USERDATA block and kick off timer
@@ -79,6 +108,17 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		}
+	}
+
+	// shutdown
+	if ( g_hRC != NULL) {
+		wglMakeCurrent( NULL, NULL );
+		wglDeleteContext( g_hRC );
+		g_hRC = NULL;
+	}
+	if ( g_hDC != NULL ) {
+		ReleaseDC( hWnd, g_hDC );
+		g_hDC = NULL;
 	}
 
 	return (int) msg.wParam;
@@ -142,8 +182,8 @@ HWND InitInstance(HINSTANCE hInstance, int nCmdShow)
    hInst = hInstance; // Store instance handle in our global variable
 
    hWnd = CreateWindow(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-//      CW_USEDEFAULT, 0, 320, 240, NULL, NULL, hInstance, NULL);
-      CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
+      CW_USEDEFAULT, 0, 320, 240, NULL, NULL, hInstance, NULL);
+//      CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
 
    if (hWnd)
    {
@@ -151,6 +191,33 @@ HWND InitInstance(HINSTANCE hInstance, int nCmdShow)
 	   UpdateWindow(hWnd);
    }
    return hWnd;
+}
+
+/**
+*/
+void InitGL(HWND hWnd)
+{
+	GLuint PixelFormat;
+
+	PIXELFORMATDESCRIPTOR pfd;
+	memset(&pfd, 0, sizeof(PIXELFORMATDESCRIPTOR));
+	
+	pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
+	pfd.nVersion = 1;
+	pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+	pfd.iPixelType = PFD_TYPE_RGBA;
+	pfd.cColorBits = 16;
+	pfd.cDepthBits = 16;
+
+	g_hDC = GetDC( hWnd );
+	PixelFormat = ChoosePixelFormat( g_hDC, &pfd);
+	SetPixelFormat( g_hDC, PixelFormat, &pfd);
+	g_hRC = wglCreateContext( g_hDC );
+	wglMakeCurrent( g_hDC, g_hRC );
+
+	glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
+	glEnable( GL_TEXTURE_2D );
+	setGLView( 90, 640, 480);
 }
 
 //
@@ -191,10 +258,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
 		break;
+	case WM_SIZE:
+		{
+			int nWidth  = LOWORD(lParam); 
+			int nHeight = HIWORD(lParam);
+			glViewport(0, 0, nWidth, nHeight);
+
+			setGLView( 90, nWidth, nHeight );
+		}
+		break;
 	case WM_PAINT:
 		if (slide) 
 		{
-			PaintImageGDI( hWnd, slide );
+			//PaintImageGDI( hWnd, slide );
+			PaintImageGL( hWnd, slide );
 		}
 		break;
 	case WM_TIMER:
@@ -205,12 +282,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			random_shuffle( slide->picture_names.begin(), slide->picture_names.end() );
 			slide->current_picture = 0;
 		}
-		if (slide->pImage )
-		{
+		if (slide->pImage )	{
 			FreeImage_Unload( slide->pImage );
-			//delete slide->pImage;
 		}
-		slide->pImage = LoadImage(slide, maxWidth,maxHeight);
+		//slide->pImage = LoadImage(slide, maxWidth,maxHeight);
+		LoadImageGL(slide, maxWidth,maxHeight);
 		InvalidateRect(hWnd, 0, FALSE);
 		slide->current_picture++;
 		break;
@@ -221,9 +297,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (slide->pImage )
 		{
 			FreeImage_Unload( slide->pImage );
-			//delete slide->pImage;
 			slide->pImage = 0;
 		}
+		glDeleteTextures(1, &slide->textureID);
 		break;
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
@@ -253,6 +329,21 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	return (INT_PTR)FALSE;
 }
 
+void PaintImageGL( HWND hWnd, SlideData *slide )
+{
+    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+	
+	glMatrixMode( GL_MODELVIEW );
+    glLoadIdentity();
+//	glTranslatef( 0.0f, 0.0f, -1.0f );
+
+    glBindTexture( GL_TEXTURE_2D, slide->textureID );
+    glInterleavedArrays( GL_T2F_V3F, 0, g_quadVertices );
+    glDrawArrays( GL_QUADS, 0, 4 );
+
+	SwapBuffers( g_hDC );
+}
+
 /**
 */
 int PaintImageGDI(HWND hWnd, SlideData *slide)
@@ -264,7 +355,7 @@ int PaintImageGDI(HWND hWnd, SlideData *slide)
 	GetClientRect( hWnd, &r );
 
 	hdc = BeginPaint(hWnd, &ps);
-	HBRUSH br = GetSysColorBrush( COLOR_BACKGROUND );
+	HBRUSH br = (HBRUSH)GetStockObject(BLACK_BRUSH);
 	FillRect( hdc, &r, br );
 
 	if (slide && slide->pImage)
@@ -299,7 +390,7 @@ int PaintImageGDI(HWND hWnd, SlideData *slide)
 	LOGFONT f = {0};
 	f.lfHeight = 24;
 	//f.lfItalic = TRUE;
-	strcpy( f.lfFaceName, _T("Comic Sans MS"));
+	_tcscpy( f.lfFaceName, _T("Comic Sans MS"));
 	HFONT font = CreateFontIndirect(&f);
 	SelectObject(hdc, font);
 
@@ -311,6 +402,23 @@ int PaintImageGDI(HWND hWnd, SlideData *slide)
 
 	EndPaint(hWnd, &ps);
 	return 0;
+}
+
+void setGLView( int fov, int width, int height )
+{
+	glMatrixMode( GL_PROJECTION );
+	glLoadIdentity();
+
+	// The following code is a fancy bit of math that is eqivilant to calling:
+	// gluPerspective( fieldOfView/2.0f, width/height , 0.1f, 255.0f )
+	// We do it this way simply to avoid requiring glu.h
+	GLfloat zNear = 0.1f;
+	GLfloat zFar = 100.0f;
+	GLfloat aspect = float(width)/float(height);
+	GLfloat fH = (float)tan( float(fov / 360.0f * 3.14159f) ) * zNear;
+	GLfloat fW = fH * aspect;
+	
+	glOrtho(-1*aspect,1*aspect, -1,1,-10,10);
 }
 
 
@@ -349,6 +457,55 @@ void LoadFileNames( tstring base, vector<tstring> &collection )
 
 /**
 */
+int LoadImageGL( SlideData *slide, long maxWidth, long maxHeight )
+{
+	FIBITMAP *p = 0;
+
+	glDeleteTextures( 1, &slide->textureID );
+	if (p = LoadImage( slide, maxWidth, maxHeight ))
+	{
+		long imgWidth =  FreeImage_GetWidth(p);
+		long imgHeight = FreeImage_GetHeight(p);
+
+		p = FreeImage_ConvertTo24Bits(p);
+
+		// This is important to note, FreeImage loads textures in
+		// BGR format. Now we could just use the GL_BGR extension
+		// But, we will simply swap the B and R components ourselves.
+		// Firstly, allocate the new bit data doe the image.
+//		BYTE *bits = new BYTE[imgWidth * imgHeight * 3];
+
+		// get a pointer to FreeImage's data.
+		BYTE *pixels = (BYTE*)FreeImage_GetBits(p);
+
+		// Iterate through the pixels, copying the data
+		// from 'pixels' to 'bits' except in RGB format.
+#if 0
+		for(unsigned int pix=0; pix<imgWidth * imgHeight; pix++)
+		{
+			bits[pix*3+0]=pixels[pix*3+2];
+			bits[pix*3+1]=pixels[pix*3+1];
+			bits[pix*3+3]=pixels[pix*3+0];
+		}
+#endif
+		glGenTextures( 1, &slide->textureID );
+		glBindTexture( GL_TEXTURE_2D, slide->textureID );
+		glTexParameteri( GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+		glTexParameteri( GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+
+		// The new 'glTexImage2D' function, the prime difference
+		// being that it gets the width, height and pixel information
+		// from 'bits', which is the RGB pixel data..
+		glTexImage2D( GL_TEXTURE_2D, 0, 3, imgWidth, imgHeight, 0,
+				GL_BGR_EXT, GL_UNSIGNED_BYTE, pixels );
+
+		FreeImage_Unload(p);
+	}
+	return 0;
+}
+
+/**
+*/
 FIBITMAP *LoadImage( SlideData *slide, long maxWidth, long maxHeight )
 {
 	tstring imageName = slide->picture_names[ slide->current_picture ];
@@ -358,7 +515,7 @@ FIBITMAP *LoadImage( SlideData *slide, long maxWidth, long maxHeight )
 	{
 #ifdef JPEG_EXIFROTATE
 	case FIF_JPEG:
-		p = _tFreeImage_Load(fifmt, imageName.c_str(),JPEG_EXIFROTATE);
+		p = _tFreeImage_Load(fifmt, imageName.c_str(),JPEG_EXIFROTATE|JPEG_ACCURATE);
 		break;
 #endif
 	default:
