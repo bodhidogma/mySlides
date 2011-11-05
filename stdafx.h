@@ -41,5 +41,8 @@ using namespace std;
 #include <GL/gl.h>
 #include <GL/glu.h>
 
+#pragma comment( lib, "opengl32.lib" )
+#pragma comment( lib, "glu32.lib" )
+
 // Additional headers
 #include "FreeImage.h"

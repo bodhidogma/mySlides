@@ -82,16 +82,25 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\FreeImage.h" />
+    <ClInclude Include="..\Image.h" />
+    <ClInclude Include="..\ImageFactory.h" />
+    <ClInclude Include="..\mySlideShow.h" />
     <ClInclude Include="..\Resource.h" />
     <ClInclude Include="..\stdafx.h" />
     <ClInclude Include="..\mySlides.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\Image.cpp" />
+    <ClCompile Include="..\ImageFactory.cpp" />
+    <ClCompile Include="..\mySlideShow.cpp" />
+    <ClCompile Include="..\mySlides_mswin.cpp" />
     <ClCompile Include="..\stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="..\mySlides.cpp" />
+    <ClCompile Include="..\mySlides.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\mySlides.rc" />
