@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include "mySlides.h"
 #include "mySlideShow.h"
+#include "Image.h"
 
 #if 0
 #ifndef CDS_FULLSCREEN											// CDS_FULLSCREEN Is Not Defined By Some
@@ -13,6 +14,64 @@
 
 GL_Window*	g_window;
 Keys*		g_keys;
+
+// our image(s)
+Image* g_slideImage;
+
+/** Initialize - setup prereqs
+*/
+BOOL Initialize (GL_Window* window, Keys* keys)
+{
+	g_window	= window;
+	g_keys		= keys;
+
+	// Start Of User Initialization
+	g_slideImage = new Image();
+	
+	static const int maxWidth = GetSystemMetrics( SM_CXSCREEN );
+	static const int maxHeight = GetSystemMetrics( SM_CYSCREEN );
+
+	glClearColor (0.0f, 0.0f, 0.0f, 0.5f);				// Black Background
+	glClearDepth (1.0f);								// Depth Buffer Setup
+	glDepthFunc (GL_LEQUAL);							// The Type Of Depth Testing (Less Or Equal)
+	glDisable(GL_DEPTH_TEST);							// Disable Depth Testing
+	glShadeModel (GL_SMOOTH);							// Select Smooth Shading
+	glHint (GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);	// Set Perspective Calculations To Most Accurate
+	glEnable(GL_TEXTURE_2D);							// Enable Texture Mapping
+	glBlendFunc(GL_ONE,GL_SRC_ALPHA);					// Set Blending Mode (Cheap / Quick)
+	glEnable(GL_BLEND);									// Enable Blending
+
+	tstring imageName = _T("images/img_7383.jpg");
+	g_slideImage->loadImageTexture( imageName, maxWidth,maxHeight );
+
+	return TRUE;
+}
+
+/** Deinitialize before termination
+*/
+void Deinitialize (void)
+{
+	if (g_slideImage)
+		delete g_slideImage;
+}
+
+/** Update - called just before every Draw
+*/
+void Update (GL_Window* window, DWORD milliseconds)
+{
+	// process keypress
+	if (g_keys->keyDown [VK_ESCAPE] == TRUE)
+		TerminateApplication (g_window);
+
+	if (g_keys->keyDown [VK_F1] == TRUE)
+		ToggleFullscreen (g_window);
+
+	// other update functions
+	if ( g_slideImage->x < 1.0 )
+		g_slideImage->x += .001f;
+	else if (g_slideImage->y < 1.0)
+		g_slideImage->y += .001f; 
+}
 
 struct Vertex
 {
@@ -29,72 +88,21 @@ Vertex g_quadVertices[] =
     { 0.0f,1.0f, -1.0f, 1.0f, -0.0f }
 };
 
-
-void SetObject(int loop)
-{
-}
-
-void LoadGLTextures()
-{
-}
-
-/** Initialize - setup prereqs
-*/
-BOOL Initialize (GL_Window* window, Keys* keys)
-{
-	g_window	= window;
-	g_keys		= keys;
-
-	// Start Of User Initialization
-	LoadGLTextures();
-	
-	glClearColor (0.0f, 0.0f, 0.0f, 0.5f);				// Black Background
-	glClearDepth (1.0f);								// Depth Buffer Setup
-	glDepthFunc (GL_LEQUAL);							// The Type Of Depth Testing (Less Or Equal)
-	glDisable(GL_DEPTH_TEST);							// Disable Depth Testing
-	glShadeModel (GL_SMOOTH);							// Select Smooth Shading
-	glHint (GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);	// Set Perspective Calculations To Most Accurate
-	glEnable(GL_TEXTURE_2D);							// Enable Texture Mapping
-	glBlendFunc(GL_ONE,GL_SRC_ALPHA);					// Set Blending Mode (Cheap / Quick)
-	glEnable(GL_BLEND);									// Enable Blending
-
-#if 0
-	{
-		SetObject(loop);								// Call SetObject To Assign New Random Values
-	}
-#endif
-
-	return TRUE;
-}
-
-/** Deinitialize before termination
-*/
-void Deinitialize (void)
-{
-}
-
-/** Update - called just before every Draw
-*/
-void Update (GL_Window* window, DWORD milliseconds)
-{
-	if (g_keys->keyDown [VK_ESCAPE] == TRUE)
-	{
-		TerminateApplication (g_window);
-	}
-
-	if (g_keys->keyDown [VK_F1] == TRUE)
-	{
-		ToggleFullscreen (g_window);
-	}
-}
-
 /** Draw - called to dispaly / render scene
 */
 void Draw (GL_Window* window)
 {
 	glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	// Clear Screen And Depth Buffer
 
-	{
+	glMatrixMode (GL_MODELVIEW);
+    glLoadIdentity();												// reset matrix
+    glBindTexture( GL_TEXTURE_2D, g_slideImage->getTextureID() );	// bind texture
+
+//	glTranslatef( 0.0f, 0.0f, -2.4f );
+	glTranslatef( g_slideImage->x, g_slideImage->y, -2.4f );
+    glInterleavedArrays( GL_T2F_V3F, 0, g_quadVertices );			// draw texture
+    glDrawArrays( GL_QUADS, 0, 4 );
+
 #if 0
 		glLoadIdentity ();										// Reset The Modelview Matrix
 		glBindTexture(GL_TEXTURE_2D, texture[obj[loop].tex]);	// Bind Our Texture
@@ -129,5 +137,4 @@ void Draw (GL_Window* window)
 			obj[loop].fi=-obj[loop].fi;							// Change Direction By Making fi = -fi
 		}
 #endif
-	}
 }

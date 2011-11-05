@@ -33,8 +33,18 @@ void ReshapeGL (int width, int height)
 	glViewport (0, 0, (GLsizei)(width), (GLsizei)(height));		// Reset The Current Viewport
 	glMatrixMode (GL_PROJECTION);
 	glLoadIdentity ();											// Reset The Projection Matrix
+#if 1
 	gluPerspective (45.0f, (GLfloat)(width)/(GLfloat)(height),
-					1.0f, 1000.0f);		
+					1.0f, 1000.0f);
+#else
+	GLfloat zNear = 1.0f;
+	GLfloat zFar = 1000.0f;
+	GLfloat aspect = float(width)/float(height);
+	GLfloat fH = (float)tan( float(90.0 / 360.0f * 3.14159f) ) * zNear;
+	GLfloat fW = fH * aspect;
+	
+	glOrtho(-1*aspect,1*aspect, -1,1,-10,10);
+#endif
 	glMatrixMode (GL_MODELVIEW);
 	glLoadIdentity ();											// Reset The Modelview Matrix
 }
