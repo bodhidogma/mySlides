@@ -16,9 +16,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\README" />
-    <None Include="..\mySlides-small.ico">
-      <Filter>Resource Files</Filter>
-    </None>
     <None Include="..\mySlides.ico">
       <Filter>Resource Files</Filter>
     </None>

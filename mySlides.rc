@@ -9,43 +9,6 @@
 #include "resource.h"
 
 
-
-
-//
-// Menu resources
-//
-LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
-IDC_MYSLIDES MENU
-{
-    POPUP "&File"
-    {
-        MENUITEM "E&xit", IDM_EXIT
-    }
-    POPUP "&Help"
-    {
-        MENUITEM "&About ...", IDM_ABOUT
-    }
-}
-
-
-
-//
-// Dialog resources
-//
-LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
-IDD_ABOUTBOX DIALOG 22, 17, 230, 75
-STYLE DS_MODALFRAME | DS_SETFONT | WS_CAPTION | WS_SYSMENU
-CAPTION "About"
-FONT 8, "System"
-{
-    ICON            "", IDC_STATIC, 14, 9, 16, 16, SS_ICON
-    LTEXT           "mySlides Version 1.0", IDC_STATIC, 49, 10, 119, 8, SS_LEFT | SS_NOPREFIX
-    LTEXT           "Copyright (C) 2011", IDC_STATIC, 49, 20, 119, 8, SS_LEFT
-    DEFPUSHBUTTON   "OK", IDOK, 195, 6, 30, 11, WS_GROUP
-}
-
-
-
 //
 // String Table resources
 //
@@ -56,26 +19,9 @@ STRINGTABLE
     IDS_APP_TITLE                 "mySlides"
 }
 
-
-
-//
-// Accelerator resources
-//
-LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
-IDC_WIN_SLIDES ACCELERATORS
-{
-    "?",            IDM_ABOUT, ASCII, ALT
-    "/",            IDM_ABOUT, ASCII, ALT
-}
-
-
-
 //
 // Icon resources
 //
-LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
-IDI_SMALL          ICON           "mySlides-small.ICO"
-
 
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 IDI_MYSLIDES      ICON           "mySlides.ICO"

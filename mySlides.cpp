@@ -44,6 +44,7 @@ void InitGL(HWND hWnd);
 void PaintImageGL( HWND hWnd, SlideData *slide );
 int LoadImageGL( SlideData *slide, long maxWidth, long maxHeight );
 
+void ImageSelect(SlideData *slide);
 void LoadFileNames( tstring base, vector<tstring> &collection );
 int PaintImageGDI(HWND hWnd, SlideData *slide);
 FIBITMAP *LoadImage( SlideData *slide, long maxWidth, long maxHeight );
@@ -66,65 +67,6 @@ struct SlideData
 	GLuint textureID;
 };
 
-/**
-*/
-int APIENTRY _tWinMain(HINSTANCE hInstance,
-                     HINSTANCE hPrevInstance,
-                     LPTSTR    lpCmdLine,
-                     int       nCmdShow)
-{
-	UNREFERENCED_PARAMETER(hPrevInstance);
-	UNREFERENCED_PARAMETER(lpCmdLine);
-
- 	// TODO: Place code here.
-	MSG msg;
-	HACCEL hAccelTable;
-
-	// Initialize global strings
-	LoadString(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
-	LoadString(hInstance, IDC_MYSLIDES, szWindowClass, MAX_LOADSTRING);
-	MyRegisterClass(hInstance);
-
-	// Perform application initialization:
-	HWND hWnd = InitInstance (hInstance, nCmdShow);
-	if (!hWnd)
-	{
-		return FALSE;
-	}
-	InitGL(hWnd);
-	hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_MYSLIDES));
-
-	// set initial path for images, save data to USERDATA block and kick off timer
-	SlideData data( _T("images") );
-	SetWindowLong( hWnd, GWL_USERDATA, (long)&data );
-	SendMessage( hWnd, WM_TIMER, 0,0 );
-	SetTimer( hWnd, 101, 3000, 0 );
-
-	// Main message loop:
-	while (GetMessage(&msg, NULL, 0, 0))
-	{
-		if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
-		{
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-		}
-	}
-
-	// shutdown
-	if ( g_hRC != NULL) {
-		wglMakeCurrent( NULL, NULL );
-		wglDeleteContext( g_hRC );
-		g_hRC = NULL;
-	}
-	if ( g_hDC != NULL ) {
-		ReleaseDC( hWnd, g_hDC );
-		g_hDC = NULL;
-	}
-
-	return (int) msg.wParam;
-}
-
-
 //
 //  FUNCTION: MyRegisterClass()
 //
@@ -146,19 +88,17 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 
 	wcex.cbSize = sizeof(WNDCLASSEX);
 
-//	wcex.style			= CS_HREDRAW | CS_VREDRAW;
 	wcex.style			= CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
 	wcex.lpfnWndProc	= WndProc;
 	wcex.cbClsExtra		= 0;
 	wcex.cbWndExtra		= 0;
 	wcex.hInstance		= hInstance;
 	wcex.hIcon			= LoadIcon(hInstance, MAKEINTRESOURCE(IDI_MYSLIDES));
+	wcex.hIconSm		= LoadIcon(hInstance, MAKEINTRESOURCE(IDI_MYSLIDES));
 	wcex.hCursor		= LoadCursor(NULL, IDC_ARROW);
-//	wcex.hbrBackground	= (HBRUSH)(COLOR_WINDOW+1);
 	wcex.hbrBackground	= (HBRUSH)GetStockObject(BLACK_BRUSH);
-	wcex.lpszMenuName	= MAKEINTRESOURCE(IDC_MYSLIDES);
+	wcex.lpszMenuName	= NULL;
 	wcex.lpszClassName	= szWindowClass;
-	wcex.hIconSm		= LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
 	return RegisterClassEx(&wcex);
 }
@@ -181,8 +121,8 @@ HWND InitInstance(HINSTANCE hInstance, int nCmdShow)
 
    hInst = hInstance; // Store instance handle in our global variable
 
-   hWnd = CreateWindow(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-      CW_USEDEFAULT, 0, 320, 240, NULL, NULL, hInstance, NULL);
+   hWnd = CreateWindowEx(NULL, szWindowClass, szTitle, WS_OVERLAPPEDWINDOW|WS_VISIBLE,
+      0, 0, 320, 240, NULL, NULL, hInstance, NULL);
 //      CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
 
    if (hWnd)
@@ -192,6 +132,80 @@ HWND InitInstance(HINSTANCE hInstance, int nCmdShow)
    }
    return hWnd;
 }
+
+/**
+*/
+int APIENTRY _tWinMain(HINSTANCE hInstance,
+                     HINSTANCE hPrevInstance,
+                     LPTSTR    lpCmdLine,
+                     int       nCmdShow)
+{
+	UNREFERENCED_PARAMETER(hPrevInstance);
+	UNREFERENCED_PARAMETER(lpCmdLine);
+
+ 	// TODO: Place code here.
+	MSG msg;
+//	HACCEL hAccelTable;
+
+	// Initialize global strings
+	LoadString(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
+	LoadString(hInstance, IDC_MYSLIDES, szWindowClass, MAX_LOADSTRING);
+	MyRegisterClass(hInstance);
+
+	// Perform application initialization:
+	HWND hWnd = InitInstance (hInstance, nCmdShow);
+	if (!hWnd)
+	{
+		return FALSE;
+	}
+	InitGL(hWnd);
+
+	// set initial path for images, save data to USERDATA block and kick off timer
+	SlideData slide( _T("images") );
+	SetWindowLong( hWnd, GWL_USERDATA, (long)&slide );
+	
+	SetTimer( hWnd, 101, 3000, 0 );
+	SendMessage( hWnd, WM_TIMER, 0,0 );
+
+	// Main message loop:
+#if 0
+	while (GetMessage(&msg, NULL, 0, 0))
+	{
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+	}
+#else
+	memset( &msg, 0, sizeof(msg) );
+	while (msg.message != WM_QUIT)
+	{
+		if (PeekMessage( &msg, NULL, 0,0, PM_REMOVE ))
+		{
+			TranslateMessage( &msg );
+			DispatchMessage( &msg );
+		}
+		else
+		{
+			PaintImageGL( NULL, &slide );
+			Sleep(20);
+		}
+	}
+#endif
+
+	// shutdown
+	if ( g_hRC != NULL) {
+		wglMakeCurrent( NULL, NULL );
+		wglDeleteContext( g_hRC );
+		g_hRC = NULL;
+	}
+	if ( g_hDC != NULL ) {
+		ReleaseDC( hWnd, g_hDC );
+		g_hDC = NULL;
+	}
+
+	return (int) msg.wParam;
+}
+
+
 
 /**
 */
@@ -234,7 +248,6 @@ void InitGL(HWND hWnd)
 */
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	int wmId, wmEvent;
     static const int maxWidth = GetSystemMetrics( SM_CXSCREEN );
     static const int maxHeight = GetSystemMetrics( SM_CYSCREEN );
 
@@ -242,22 +255,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	switch (message)
 	{
-	case WM_COMMAND:
-		wmId    = LOWORD(wParam);
-		wmEvent = HIWORD(wParam);
-		// Parse the menu selections:
-		switch (wmId)
-		{
-		case IDM_ABOUT:
-			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, (DLGPROC)About);
-			break;
-		case IDM_EXIT:
-			DestroyWindow(hWnd);
-			break;
-		default:
-			return DefWindowProc(hWnd, message, wParam, lParam);
-		}
-		break;
 	case WM_SIZE:
 		{
 			int nWidth  = LOWORD(lParam); 
@@ -267,29 +264,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			setGLView( 90, nWidth, nHeight );
 		}
 		break;
+#if 0
 	case WM_PAINT:
 		if (slide) 
 		{
 			//PaintImageGDI( hWnd, slide );
-			PaintImageGL( hWnd, slide );
 		}
 		break;
+#endif
 	case WM_TIMER:
-		if (slide->current_picture == slide->picture_names.size() )
-		{
-			slide->picture_names.resize(0);
-			LoadFileNames( slide->searchBase, slide->picture_names );
-			random_shuffle( slide->picture_names.begin(), slide->picture_names.end() );
-			slide->current_picture = 0;
-		}
-		if (slide->pImage )	{
-			FreeImage_Unload( slide->pImage );
-		}
-		//slide->pImage = LoadImage(slide, maxWidth,maxHeight);
-		LoadImageGL(slide, maxWidth,maxHeight);
-		InvalidateRect(hWnd, 0, FALSE);
-		slide->current_picture++;
+		ImageSelect( slide );
+//		InvalidateRect(hWnd, 0, FALSE);
 		break;
+	case WM_CLOSE:
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		break;
@@ -307,27 +294,29 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
-// Message handler for about box.
-/**
-*/
-INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+void ImageSelect(SlideData *slide)
 {
-	UNREFERENCED_PARAMETER(lParam);
-	switch (message)
-	{
-	case WM_INITDIALOG:
-		return (INT_PTR)TRUE;
+    static const int maxWidth = GetSystemMetrics( SM_CXSCREEN );
+    static const int maxHeight = GetSystemMetrics( SM_CYSCREEN );
 
-	case WM_COMMAND:
-		if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
-		{
-			EndDialog(hDlg, LOWORD(wParam));
-			return (INT_PTR)TRUE;
-		}
-		break;
+	if (slide->current_picture == slide->picture_names.size() )
+	{
+		slide->picture_names.resize(0);
+		LoadFileNames( slide->searchBase, slide->picture_names );
+		random_shuffle( slide->picture_names.begin(), slide->picture_names.end() );
+		slide->current_picture = 0;
 	}
-	return (INT_PTR)FALSE;
+	if (slide->pImage )	{
+		FreeImage_Unload( slide->pImage );
+	}
+	//slide->pImage = LoadImage(slide, maxWidth,maxHeight);
+	LoadImageGL(slide, maxWidth,maxHeight);
+//		InvalidateRect(hWnd, 0, FALSE);
+//		PaintImageGL( hWnd, slide );
+
+	slide->current_picture++;
 }
+
 
 void PaintImageGL( HWND hWnd, SlideData *slide )
 {

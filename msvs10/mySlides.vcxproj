@@ -78,7 +78,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <None Include="..\README" />
-    <None Include="..\mySlides-small.ico" />
     <None Include="..\mySlides.ico" />
   </ItemGroup>
   <ItemGroup>
