@@ -4,19 +4,22 @@
 #include "stdafx.h"
 #include "mySlides.h"
 #include "mySlideShow.h"
-#include "Image.h"
+#include "ImageFactory.h"
+
 
 #if 0
 #ifndef CDS_FULLSCREEN											// CDS_FULLSCREEN Is Not Defined By Some
 #define CDS_FULLSCREEN 4										// Compilers. By Defining It This Way,
 #endif															// We Can Avoid Errors
-#endif 
+#endif
+
+#define TIMER_DURATION	5
 
 GL_Window*	g_window;
 Keys*		g_keys;
 
 // our image(s)
-Image* g_slideImage;
+ImageFactory *g_slideFactory;
 
 /** Initialize - setup prereqs
 */
@@ -26,11 +29,12 @@ BOOL Initialize (GL_Window* window, Keys* keys)
 	g_keys		= keys;
 
 	// Start Of User Initialization
-	g_slideImage = new Image();
-	
 	static const int maxWidth = GetSystemMetrics( SM_CXSCREEN );
 	static const int maxHeight = GetSystemMetrics( SM_CYSCREEN );
 
+	g_slideFactory = new ImageFactory(_T("images"),
+		maxWidth,maxHeight, window->init.width,window->init.height);
+	
 	glClearColor (0.0f, 0.0f, 0.0f, 0.5f);				// Black Background
 	glClearDepth (1.0f);								// Depth Buffer Setup
 	glDepthFunc (GL_LEQUAL);							// The Type Of Depth Testing (Less Or Equal)
@@ -41,11 +45,8 @@ BOOL Initialize (GL_Window* window, Keys* keys)
 	glBlendFunc(GL_ONE,GL_SRC_ALPHA);					// Set Blending Mode (Cheap / Quick)
 	glEnable(GL_BLEND);									// Enable Blending
 
-//	tstring imageName = _T("images/img_7383.jpg");
-	tstring imageName = _T("images/img_7417.jpg");
-//	tstring imageName = _T("images/img_0175.jpg");
-
-	g_slideImage->loadImageTexture( imageName, maxWidth,maxHeight );
+	// init timer
+	SetTimer( window->hWnd, 101, TIMER_DURATION *1000, 0 );
 
 	return TRUE;
 }
@@ -54,8 +55,17 @@ BOOL Initialize (GL_Window* window, Keys* keys)
 */
 void Deinitialize (void)
 {
-	if (g_slideImage)
-		delete g_slideImage;
+	if (g_slideFactory)
+		delete g_slideFactory;
+}
+
+/** called whenever window is resized
+*/
+void WindowWasResized(int width, int height)
+{
+	// Ensure factory has been allocated
+	if (g_slideFactory)
+		g_slideFactory->updateWinSize(width,height);
 }
 
 /** Update - called just before every Draw
@@ -78,8 +88,14 @@ void Draw (GL_Window* window)
 {
 	glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	// Clear Screen And Depth Buffer
 
-	RECT r;
-	GetClientRect( window->hWnd, &r );
+	if (g_slideFactory)
+		g_slideFactory->drawSlide();
+}
 
-	g_slideImage->Draw(r.right,r.bottom);
+/** Timer callback
+*/
+void Timer (GL_Window* window)
+{
+	if (g_slideFactory)
+		g_slideFactory->nextSlide();
 }

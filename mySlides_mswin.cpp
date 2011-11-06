@@ -50,6 +50,8 @@ void ReshapeGL (int width, int height)
 #endif
 	glMatrixMode (GL_MODELVIEW);
 	glLoadIdentity ();											// Reset The Modelview Matrix
+
+	WindowWasResized( width, height );
 }
 
 /**
@@ -289,6 +291,10 @@ LRESULT CALLBACK WindowProc (HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			}
 		break;
 
+		case WM_TIMER:
+			Timer(window);
+			break;
+
 		case WM_KEYDOWN:
 			if ((wParam >= 0) && (wParam <= 255))
 			{
@@ -373,11 +379,13 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 
 	// Ask The User If They Want To Start In FullScreen Mode?
 #if 0
-	if (MessageBox (HWND_DESKTOP, "Would You Like To Run In Fullscreen Mode?",
-		"Start FullScreen?",MB_YESNO | MB_ICONQUESTION) == IDNO)
+	if (MessageBox (HWND_DESKTOP, _T("Would You Like To Run In Fullscreen Mode?"),
+		_T("Start FullScreen?"),MB_YESNO | MB_ICONQUESTION) == IDNO)
 	{
 		window.init.isFullScreen = FALSE;
 	}
+	else
+		window.init.isFullScreen = TRUE;
 #endif
 
 	// Register A Class For Our Window To Use

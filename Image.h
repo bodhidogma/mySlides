@@ -13,16 +13,15 @@ struct Metadata
 class Image
 {
 public:
-	Image();
+	Image(tstring imageName, int maxWidth, int maxHeight);
 	~Image();
 
-	int loadImageTexture(tstring imageName, int maxWidth, int maxHeight);
 	int Draw(int width, int height);
 
-	GLuint getTextureID(){ return textureID; }
-
 private:
+	int loadImageTexture(tstring imageName, int maxWidth, int maxHeight);
 	float getScaling(int maxWidth,int maxHeight);
+	GLuint getTextureID(){ return textureID; }
 
 	GLuint textureID;
 	Metadata m;

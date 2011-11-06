@@ -470,6 +470,7 @@ int LoadImageGL( SlideData *slide, long maxWidth, long maxHeight )
 		// Iterate through the pixels, copying the data
 		// from 'pixels' to 'bits' except in RGB format.
 #if 0
+
 		for(unsigned int pix=0; pix<imgWidth * imgHeight; pix++)
 		{
 			bits[pix*3+0]=pixels[pix*3+2];

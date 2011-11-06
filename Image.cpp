@@ -2,16 +2,20 @@
 */
 
 #include "stdafx.h"
-#include "mySlides.h"
 #include "Image.h"
 
-
-Image::Image()
+/**
+*/
+Image::Image(tstring imageName, int maxWidth, int maxHeight)
 {
 	memset(&this->m, 0, sizeof(Metadata));
-	this->x = this->y = 0.0;
+	x = y = 0.0;
+
+	loadImageTexture(imageName,maxWidth,maxHeight);
 }
 
+/**
+*/
 Image::~Image()
 {
 	glDeleteTextures( 1, &this->textureID );
@@ -27,11 +31,8 @@ float Image::getScaling(int maxWidth, int maxHeight)
 
 	float x_stretch = (float) maxWidth / this->m.width;
     float y_stretch = (float) maxHeight / this->m.height;
-    float stretch;
-//    if ( x_stretch < 1 || y_stretch < 1 )
-//        stretch = x_stretch < y_stretch ? x_stretch : y_stretch;
-//    else
-        stretch = x_stretch < y_stretch ? x_stretch : y_stretch;
+
+    float stretch = (x_stretch < y_stretch) ? x_stretch : y_stretch;
 	
 	return stretch;
 }
@@ -78,18 +79,28 @@ int Image::loadImageTexture(tstring imageName, int maxWidth, int maxHeight)
 	// -- save image as texture --
 
 	// FreeImage loads images in BGR format
-	dib = FreeImage_ConvertTo24Bits(dib);
+	dib = FreeImage_ConvertTo32Bits(dib);
 
 	// get a pointer to FreeImage's data.
 	BYTE *pixels = (BYTE*)FreeImage_GetBits(dib);
+
+	// convert from [BGR] 0xBBGGRR(AA) to [RGB] 0xRRGGBB(AA)
+	BYTE tC = 0;
+	for(unsigned int pix=0; pix<this->m.width * this->m.height; pix++)
+	{
+		// Swap RR & BB values
+		tC = pixels[pix*4+0];
+		pixels[pix*4+0] = pixels[pix*4+2];
+		pixels[pix*4+2] = tC;
+	}
 
 	glGenTextures( 1, &this->textureID );
 	glBindTexture( GL_TEXTURE_2D, this->textureID );
 	glTexParameteri( GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 	glTexParameteri( GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 
-	glTexImage2D( GL_TEXTURE_2D, 0, 3, this->m.width, this->m.height, 0,
-			GL_BGR_EXT, GL_UNSIGNED_BYTE, pixels );
+	glTexImage2D( GL_TEXTURE_2D, 0, 4, this->m.width, this->m.height, 0,
+			GL_RGBA, GL_UNSIGNED_BYTE, pixels );
 
 	FreeImage_Unload(dib);
 	dib = 0;
@@ -97,6 +108,8 @@ int Image::loadImageTexture(tstring imageName, int maxWidth, int maxHeight)
 	return 1;
 }
 
+/**
+*/
 int Image::Draw(int width, int height)
 {
 	if ( this->x < 100.0 ) this->x += .5f;
