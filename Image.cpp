@@ -17,6 +17,27 @@ Image::~Image()
 	glDeleteTextures( 1, &this->textureID );
 }
 
+/**
+*/
+float Image::getScaling(int maxWidth, int maxHeight)
+{
+	// assume m.width / m.height is set
+	if (!this->m.width || !this->m.height)
+		return 1.0f;
+
+	float x_stretch = (float) maxWidth / this->m.width;
+    float y_stretch = (float) maxHeight / this->m.height;
+    float stretch;
+//    if ( x_stretch < 1 || y_stretch < 1 )
+//        stretch = x_stretch < y_stretch ? x_stretch : y_stretch;
+//    else
+        stretch = x_stretch < y_stretch ? x_stretch : y_stretch;
+	
+	return stretch;
+}
+
+/**
+*/
 int Image::loadImageTexture(tstring imageName, int maxWidth, int maxHeight)
 {
 	FIBITMAP *dib = 0;
@@ -46,13 +67,7 @@ int Image::loadImageTexture(tstring imageName, int maxWidth, int maxHeight)
 	this->m.height = FreeImage_GetHeight(dib);
 
 	// rescale image to size of screen (we don't need a texture bigger than screen size)
-	float x_stretch = (float) maxWidth / this->m.width;
-    float y_stretch = (float) maxHeight / this->m.height;
-    float stretch;
-    if ( x_stretch < 1 || y_stretch < 1 )
-        stretch = x_stretch < y_stretch ? x_stretch : y_stretch;
-    else
-        stretch = x_stretch < y_stretch ? x_stretch : y_stretch;
+	float stretch = this->getScaling(maxWidth, maxHeight);
 
 	// new image dimensions
 	this->m.width = (unsigned int)((this->m.width * stretch) +.5);
@@ -82,7 +97,48 @@ int Image::loadImageTexture(tstring imageName, int maxWidth, int maxHeight)
 	return 1;
 }
 
-int Image::Draw()
+int Image::Draw(int width, int height)
 {
+	if ( this->x < 100.0 ) this->x += .5f;
+	if (this->y < 100.0) this->y += .5f; 
+
+	// adjust image scale according to window dimensions
+	float xp = 1.0, yp = 1.0;
+	float s_aspect = (float)width / (float)height;
+	float i_aspect = (float)this->m.width / (float)this->m.height;
+
+#if 1
+	// modelview adjustments
+	glMatrixMode (GL_MODELVIEW);
+	if (i_aspect < s_aspect)
+		xp = i_aspect;
+	else {
+		yp = (s_aspect / i_aspect);
+		xp = s_aspect;
+	}
+#else
+	// projection adjustments
+	glMatrixMode (GL_PROJECTION);
+	if (i_aspect < s_aspect)
+		xp = (i_aspect / s_aspect);
+	else
+		yp = (s_aspect / i_aspect);
+#endif
+    glLoadIdentity();									// reset matrix
+	glBindTexture( GL_TEXTURE_2D, this->textureID );	// bind texture
+
+	// position quad correctly in Model view
+	glTranslatef( 0.0f, 0.0f, -2.40f );
+//	glTranslatef( g_slideImage->x, g_slideImage->y, -2.4f );
+
+//	glRotatef(this->x,1.0f,0.0f,0.0f);
+//	glRotatef(this->y,0.0f,0.0f,1.0f);
+
+	glBegin(GL_QUADS);
+		glTexCoord2f(0.0,0.0); glVertex3f(-xp,-yp,0.0);		//(4:0,1) ___ (3:1,1)
+		glTexCoord2f(1.0,0.0); glVertex3f( xp,-yp,0.0);		//       |   |
+		glTexCoord2f(1.0,1.0); glVertex3f( xp, yp,0.0);		//       |___|
+		glTexCoord2f(0.0,1.0); glVertex3f(-xp, yp,0.0);		//(1:0,0)     (2:1,0)
+	glEnd();
 	return 0;
 }

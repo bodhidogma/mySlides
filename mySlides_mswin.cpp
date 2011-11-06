@@ -11,6 +11,9 @@
 static BOOL g_isProgramLooping;
 static BOOL g_createFullScreen;
 
+#define INIT_WIN_W	640
+#define INIT_WIN_H	400
+
 /**
 */
 void TerminateApplication (GL_Window* window)
@@ -37,13 +40,13 @@ void ReshapeGL (int width, int height)
 	gluPerspective (45.0f, (GLfloat)(width)/(GLfloat)(height),
 					1.0f, 1000.0f);
 #else
-	GLfloat zNear = 1.0f;
-	GLfloat zFar = 1000.0f;
+//	GLfloat zNear = 1.0f;
+//	GLfloat zFar = 1000.0f;
 	GLfloat aspect = float(width)/float(height);
-	GLfloat fH = (float)tan( float(90.0 / 360.0f * 3.14159f) ) * zNear;
-	GLfloat fW = fH * aspect;
+//	GLfloat fH = (float)tan( float(90.0 / 360.0f * 3.14159f) ) * zNear;
+//	GLfloat fW = fH * aspect;
 	
-	glOrtho(-1*aspect,1*aspect, -1,1,-10,10);
+	glOrtho(-1*aspect,1*aspect, -1,1, -1,1000);
 #endif
 	glMatrixMode (GL_MODELVIEW);
 	glLoadIdentity ();											// Reset The Modelview Matrix
@@ -361,9 +364,9 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 	window.keys					= &keys;
 	window.init.application		= &application;
 	LoadString(hInstance, IDS_APP_TITLE, window.init.title, MAX_LOADSTRING);
-	window.init.width			= 640;
-	window.init.height			= 480;
-	window.init.bitsPerPixel	= 16;
+	window.init.width			= INIT_WIN_W;
+	window.init.height			= INIT_WIN_H;
+	window.init.bitsPerPixel	= 24;
 	window.init.isFullScreen	= FALSE;
 
 	ZeroMemory (&keys, sizeof (Keys));
@@ -431,7 +434,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 							glFlush ();
 							SwapBuffers (window.hDC);
 
-							Sleep(15);	// delay so other messages can be processed
+							Sleep(150);	// delay so other messages can be processed
 						}
 					}
 				}

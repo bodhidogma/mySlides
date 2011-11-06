@@ -15,19 +15,18 @@ class Image
 public:
 	Image();
 	~Image();
+
 	int loadImageTexture(tstring imageName, int maxWidth, int maxHeight);
+	int Draw(int width, int height);
 
-	GLuint getTextureID(){
-		return textureID;
-	}
-
-	float x, y;
+	GLuint getTextureID(){ return textureID; }
 
 private:
-	int Draw();
+	float getScaling(int maxWidth,int maxHeight);
 
-	Metadata m;
 	GLuint textureID;
+	Metadata m;
+	float x, y;
 };
 
 #endif
