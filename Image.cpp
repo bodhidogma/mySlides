@@ -9,8 +9,12 @@
 Image::Image(tstring imageName, int maxWidth, int maxHeight)
 {
 	memset(&this->m, 0, sizeof(Metadata));
+	fade_alpha = 0.0;	// start w/ black
+	
 	x = y = 0.0;
+	isNew = TRUE;	// this image is always new (unless modified)
 
+	m.name = imageName;
 	loadImageTexture(imageName,maxWidth,maxHeight);
 }
 
@@ -115,10 +119,20 @@ int Image::loadImageTexture(tstring imageName, int maxWidth, int maxHeight)
 
 /**
 */
+void Image::setOld()
+{
+	isNew = FALSE;
+	fade_alpha = 0.0;
+}
+/**
+*/
 int Image::Draw(int width, int height)
 {
-	if ( this->x < 100.0 ) this->x += .5f;
-	if (this->y < 100.0) this->y += .5f; 
+	if ( this->x < 1.0 ) this->x += .1f;
+	if (this->y < 100.0) this->y += .5f;
+
+	if (fade_alpha < 1.0) fade_alpha += 0.02f;
+
 
 	// adjust image scale according to window dimensions
 	float xp = 1.0, yp = 1.0;
@@ -152,6 +166,8 @@ int Image::Draw(int width, int height)
 //	glRotatef(this->x,1.0f,0.0f,0.0f);
 //	glRotatef(this->y,0.0f,0.0f,1.0f);
 
+	float imgAlpha = (isNew ? fade_alpha : (1.0-fade_alpha));
+	glColor4f( 1.0f, 1.0f, 1.0f , imgAlpha );
 	glBegin(GL_QUADS);
 		glTexCoord2f(0.0,0.0); glVertex3f(-xp,-yp,0.0);		//(4:0,1) ___ (3:1,1)
 		glTexCoord2f(1.0,0.0); glVertex3f( xp,-yp,0.0);		//       |   |
@@ -159,9 +175,9 @@ int Image::Draw(int width, int height)
 		glTexCoord2f(0.0,1.0); glVertex3f(-xp, yp,0.0);		//(1:0,0)     (2:1,0)
 	glEnd();
 
-//	glColor4f( 0.0, 0.0, 0.0 , 0.65 );
+//	glColor4f( 0.0f, 0.0f, 0.0f , 1-this->x );
 //    glEnable( GL_BLEND );
-//    glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+//   glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 //    glRectf( -0.5, -0.5, 0.5, 0.5 );
     
 //    glColor4f( 0.75, 0.75, 0.75 , 0.20 );

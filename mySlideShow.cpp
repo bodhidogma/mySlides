@@ -18,6 +18,7 @@
 //#define IMAGE_PATH	_T("c:\\src\\myslides\\images")
 //#define IMAGE_PATH	_T("d:\\data\\pictures\\dcim-jpeg")
 //#define IMAGE_PATH	_T("z:\\media\\photos\\2011")
+//#define IMAGE_PATH	_T("z:\\pmcavoy\\pictures\\myinet\\2010\\October")
 
 
 GL_Window*	g_window;
@@ -48,12 +49,13 @@ BOOL Initialize (GL_Window* window, Keys* keys)
 	glHint (GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);	// Set Perspective Calculations To Most Accurate
 
 	glEnable(GL_TEXTURE_2D);							// Enable Texture Mapping
-	glColor4f(1.0f,1.0f,1.0f, 0.5f);
-	glBlendFunc(GL_ONE,GL_SRC_ALPHA);					// Set Blending Mode (Cheap / Quick)
+//	glBlendFunc(GL_ONE,GL_SRC_ALPHA);					// Set Blending Mode (Cheap / Quick)
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 	glEnable(GL_BLEND);									// Enable Blending
+//	glColor4f(1.0f,1.0f,1.0f, 1.0f);
 
 	// init timer
-	SetTimer( window->hWnd, 101, TIMER_DURATION *1000, 0 );
+//	SetTimer( window->hWnd, 101, TIMER_DURATION *1000, 0 );
 
 	return TRUE;
 }
@@ -77,7 +79,7 @@ void WindowWasResized(int width, int height)
 
 /** Update - called just before every Draw
 */
-void Update (GL_Window* window, DWORD milliseconds)
+void Update (GL_Window* window, DWORD msElapsed)
 {
 	// process keypress
 	if (g_keys->keyDown [VK_ESCAPE] == TRUE)
@@ -86,7 +88,15 @@ void Update (GL_Window* window, DWORD milliseconds)
 	if (g_keys->keyDown [VK_F1] == TRUE)
 		ToggleFullscreen (g_window);
 
+	if (g_keys->keyDown [VK_RIGHT] == TRUE)	// pick next slide
+	{
+		if (g_slideFactory)
+			g_slideFactory->nextSlide(0);
+	}
+
 	// other update functions
+	if (g_slideFactory)
+		g_slideFactory->elapsedCheck(msElapsed, TIMER_DURATION);
 }
 
 /** Draw - called to dispaly / render scene
@@ -103,6 +113,5 @@ void Draw (GL_Window* window)
 */
 void Timer (GL_Window* window)
 {
-	if (g_slideFactory)
-		g_slideFactory->nextSlide();
+//	if (g_slideFactory) g_slideFactory->nextSlide();
 }
