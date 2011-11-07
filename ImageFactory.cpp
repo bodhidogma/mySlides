@@ -4,6 +4,9 @@
 #include "stdafx.h"
 #include "ImageFactory.h"
 
+#define IMAGE_EXTENSION _T("*.jpg")
+//#define IMAGE_EXTENSION _T("*.cr2")
+
 /**
 */
 ImageFactory::ImageFactory(TCHAR *basePath,
@@ -48,7 +51,7 @@ void ImageFactory::nextSlide()
 	{
 		slideNames.resize(0);
 		loadSlides(searchBase);
-//		random_shuffle( slideNames.begin(), slideNames.end() );
+		random_shuffle( slideNames.begin(), slideNames.end() );
 		currentName = 0;
 	}
 	if (theSlide)
@@ -78,7 +81,7 @@ void ImageFactory::loadSlides(tstring basePath)
 	if ( basePath.end()[ -1 ] != '/' )
 		basePath += '/';
 	WIN32_FIND_DATA fd;
-	HANDLE h = FindFirstFile( ( basePath + _T("*.jpg") ).c_str(), &fd );
+	HANDLE h = FindFirstFile( ( basePath + IMAGE_EXTENSION ).c_str(), &fd );
 	if ( h != INVALID_HANDLE_VALUE ) {
 		bool done = false;
 		while ( !done ) {

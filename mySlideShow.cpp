@@ -14,6 +14,11 @@
 #endif
 
 #define TIMER_DURATION	5
+#define IMAGE_PATH	_T("images")
+//#define IMAGE_PATH	_T("c:\\src\\myslides\\images")
+//#define IMAGE_PATH	_T("d:\\data\\pictures\\dcim-jpeg")
+//#define IMAGE_PATH	_T("z:\\media\\photos\\2011")
+
 
 GL_Window*	g_window;
 Keys*		g_keys;
@@ -32,7 +37,7 @@ BOOL Initialize (GL_Window* window, Keys* keys)
 	static const int maxWidth = GetSystemMetrics( SM_CXSCREEN );
 	static const int maxHeight = GetSystemMetrics( SM_CYSCREEN );
 
-	g_slideFactory = new ImageFactory(_T("images"),
+	g_slideFactory = new ImageFactory(IMAGE_PATH,
 		maxWidth,maxHeight, window->init.width,window->init.height);
 	
 	glClearColor (0.0f, 0.0f, 0.0f, 0.5f);				// Black Background
@@ -41,7 +46,9 @@ BOOL Initialize (GL_Window* window, Keys* keys)
 	glDisable(GL_DEPTH_TEST);							// Disable Depth Testing
 	glShadeModel (GL_SMOOTH);							// Select Smooth Shading
 	glHint (GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);	// Set Perspective Calculations To Most Accurate
+
 	glEnable(GL_TEXTURE_2D);							// Enable Texture Mapping
+	glColor4f(1.0f,1.0f,1.0f, 0.5f);
 	glBlendFunc(GL_ONE,GL_SRC_ALPHA);					// Set Blending Mode (Cheap / Quick)
 	glEnable(GL_BLEND);									// Enable Blending
 

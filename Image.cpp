@@ -75,12 +75,17 @@ int Image::loadImageTexture(tstring imageName, int maxWidth, int maxHeight)
 	this->m.height = (unsigned int)((this->m.height * stretch) +.5);
 
 	dib = FreeImage_Rescale(dib, this->m.width,this->m.height, FILTER_BOX);
-
 	// -- save image as texture --
 
 	// FreeImage loads images in BGR format
 	dib = FreeImage_ConvertTo32Bits(dib);
 
+#if 0
+	FREE_IMAGE_COLOR_TYPE ct = FreeImage_GetColorType(dib);
+	unsigned rm = FreeImage_GetRedMask(dib);
+	unsigned gm = FreeImage_GetGreenMask(dib);
+	unsigned bm = FreeImage_GetBlueMask(dib);
+#endif
 	// get a pointer to FreeImage's data.
 	BYTE *pixels = (BYTE*)FreeImage_GetBits(dib);
 
@@ -153,5 +158,15 @@ int Image::Draw(int width, int height)
 		glTexCoord2f(1.0,1.0); glVertex3f( xp, yp,0.0);		//       |___|
 		glTexCoord2f(0.0,1.0); glVertex3f(-xp, yp,0.0);		//(1:0,0)     (2:1,0)
 	glEnd();
+
+//	glColor4f( 0.0, 0.0, 0.0 , 0.65 );
+//    glEnable( GL_BLEND );
+//    glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+//    glRectf( -0.5, -0.5, 0.5, 0.5 );
+    
+//    glColor4f( 0.75, 0.75, 0.75 , 0.20 );
+//    glRectf( pos[0],pos[1] ,pos[2],pos[3]  );
+    
+//    glDisable( GL_BLEND );
 	return 0;
 }

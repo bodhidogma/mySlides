@@ -372,7 +372,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 	LoadString(hInstance, IDS_APP_TITLE, window.init.title, MAX_LOADSTRING);
 	window.init.width			= INIT_WIN_W;
 	window.init.height			= INIT_WIN_H;
-	window.init.bitsPerPixel	= 24;
+	window.init.bitsPerPixel	= 32;
 	window.init.isFullScreen	= FALSE;
 
 	ZeroMemory (&keys, sizeof (Keys));
