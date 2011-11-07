@@ -92,11 +92,19 @@ LINK32=link.exe
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
-SOURCE="..\mySlides.cpp"
+SOURCE=..\Image.cpp
 # End Source File
 # Begin Source File
 
-SOURCE="..\mySlides.rc"
+SOURCE=..\ImageFactory.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\mySlides_mswin.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\mySlideShow.cpp
 # End Source File
 # Begin Source File
 
@@ -117,11 +125,19 @@ SOURCE=..\stdafx.cpp
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
 # Begin Source File
 
+SOURCE=..\Image.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\ImageFactory.h
+# End Source File
+# Begin Source File
+
 SOURCE="..\mySlides.h"
 # End Source File
 # Begin Source File
 
-SOURCE=..\resource.h
+SOURCE=..\mySlideShow.h
 # End Source File
 # Begin Source File
 
@@ -133,11 +149,15 @@ SOURCE=..\StdAfx.h
 # PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
 # Begin Source File
 
-SOURCE="..\mySlides-small.ico"
+SOURCE="..\mySlides.ico"
 # End Source File
 # Begin Source File
 
-SOURCE="..\mySlides.ico"
+SOURCE="..\mySlides.rc"
+# End Source File
+# Begin Source File
+
+SOURCE=..\resource.h
 # End Source File
 # End Group
 # Begin Source File
