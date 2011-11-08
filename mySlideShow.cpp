@@ -91,7 +91,7 @@ void Update (GL_Window* window, DWORD msElapsed)
 	if (g_keys->keyDown [VK_F1] == TRUE)
 		ToggleFullscreen (g_window);
 
-	if (g_keys->keyDown [VK_RIGHT] == TRUE)	// pick next slide
+	if (g_keys->keyDown [VK_RIGHT] == TRUE)	// 39 : pick next slide
 	{
 		if (g_slideFactory)
 			g_slideFactory->nextSlide(0);
@@ -128,7 +128,7 @@ GLvoid BuildFont(GL_Window* window)								// Build Our Bitmap Font
 
 	base = glGenLists(96);								// Storage For 96 Characters
 
-	font = CreateFont(	-24,							// Height Of Font
+	font = CreateFont(	-20,							// Height Of Font
 						0,								// Width Of Font
 						0,								// Angle Of Escapement
 						0,								// Orientation Angle
@@ -141,7 +141,7 @@ GLvoid BuildFont(GL_Window* window)								// Build Our Bitmap Font
 						CLIP_DEFAULT_PRECIS,			// Clipping Precision
 						ANTIALIASED_QUALITY,			// Output Quality
 						FF_DONTCARE|DEFAULT_PITCH,		// Family And Pitch
-						"Courier New");					// Font Name
+						_T("Courier New"));					// Font Name
 
 	oldfont = (HFONT)SelectObject(window->hDC, font);           // Selects The Font We Want
 	wglUseFontBitmaps(window->hDC, 32, 96, base);				// Builds 96 Characters Starting At Character 32
@@ -154,20 +154,28 @@ GLvoid KillFont(GLvoid)									// Delete The Font List
 	glDeleteLists(base, 96);							// Delete All 96 Characters
 }
 
-GLvoid glPrint(const char *fmt, ...)					// Custom GL "Print" Routine
+GLvoid glPrint(const TCHAR *fmt, ...)					// Custom GL "Print" Routine
 {
-	char		text[256];								// Holds Our String
+	TCHAR		text[256];								// Holds Our String
 	va_list		ap;										// Pointer To List Of Arguments
 
 	if (fmt == NULL)									// If There's No Text
 		return;											// Do Nothing
 
 	va_start(ap, fmt);									// Parses The String For Variables
-	    vsprintf(text, fmt, ap);						// And Converts Symbols To Actual Numbers
+#ifdef UNICODE
+	_vsntprintf_s(text, 256, 256, fmt, ap);						// And Converts Symbols To Actual Numbers
+#else
+	_vsntprintf(text, 256, fmt, ap);						// And Converts Symbols To Actual Numbers
+#endif
 	va_end(ap);											// Results Are Stored In Text
 
 	glPushAttrib(GL_LIST_BIT);							// Pushes The Display List Bits
 	glListBase(base - 32);								// Sets The Base Character to 32
-	glCallLists(strlen(text), GL_UNSIGNED_BYTE, text);	// Draws The Display List Text
+#ifdef UNICODE
+	glCallLists(_tcslen(text), GL_UNSIGNED_SHORT, text);	// Draws The Display List Text
+#else
+	glCallLists(_tcslen(text), GL_UNSIGNED_BYTE, text);	// Draws The Display List Text
+#endif
 	glPopAttrib();										// Pops The Display List Bits
 }

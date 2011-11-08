@@ -50,7 +50,7 @@ void ImageFactory::elapsedCheck(unsigned long msElapse, int nextSeconds)
 {
 	msElapsed += msElapse;
 
-	if (msElapsed >= (nextSeconds * 1000))
+	if (msElapsed >= (unsigned)(nextSeconds * 1000))
 	{
 		nextSlide(1);
 	}
@@ -80,7 +80,8 @@ void ImageFactory::nextSlide(int doFadeOut)
 	}
 
 	// load new slide
-	theSlide = new Image( slideNames[ currentName ], maxWidth,maxHeight);
+	if (!slideNames.empty())
+		theSlide = new Image( slideNames[ currentName ], maxWidth,maxHeight);
 
 	// iterate to next slide
 	currentName++;

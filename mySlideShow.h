@@ -16,6 +16,6 @@ void Timer (GL_Window* window);
 
 GLvoid BuildFont(GL_Window* window);
 GLvoid KillFont(GLvoid);
-GLvoid glPrint(const char *fmt, ...);
+GLvoid glPrint(const TCHAR *fmt, ...);
 
 #endif

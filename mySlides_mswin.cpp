@@ -14,6 +14,8 @@ static BOOL g_createFullScreen;
 #define INIT_WIN_W	640
 #define INIT_WIN_H	400
 
+#define SLEEP_TIME	100
+
 /**
 */
 void TerminateApplication (GL_Window* window)
@@ -442,7 +444,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 							glFlush ();
 							SwapBuffers (window.hDC);
 
-							Sleep(30);	// delay so other messages can be processed
+							Sleep(SLEEP_TIME);	// delay so other messages can be processed
 						}
 					}
 				}
