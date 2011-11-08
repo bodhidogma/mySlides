@@ -23,6 +23,7 @@
 
 GL_Window*	g_window;
 Keys*		g_keys;
+GLuint base;	// base display list for font set
 
 // our image(s)
 ImageFactory *g_slideFactory;
@@ -56,6 +57,8 @@ BOOL Initialize (GL_Window* window, Keys* keys)
 
 	// init timer
 //	SetTimer( window->hWnd, 101, TIMER_DURATION *1000, 0 );
+
+	BuildFont(window);
 
 	return TRUE;
 }
@@ -114,4 +117,57 @@ void Draw (GL_Window* window)
 void Timer (GL_Window* window)
 {
 //	if (g_slideFactory) g_slideFactory->nextSlide();
+}
+
+/* -- */
+
+GLvoid BuildFont(GL_Window* window)								// Build Our Bitmap Font
+{
+	HFONT	font;										// Windows Font ID
+	HFONT	oldfont;									// Used For Good House Keeping
+
+	base = glGenLists(96);								// Storage For 96 Characters
+
+	font = CreateFont(	-24,							// Height Of Font
+						0,								// Width Of Font
+						0,								// Angle Of Escapement
+						0,								// Orientation Angle
+						FW_BOLD,						// Font Weight
+						FALSE,							// Italic
+						FALSE,							// Underline
+						FALSE,							// Strikeout
+						ANSI_CHARSET,					// Character Set Identifier
+						OUT_TT_PRECIS,					// Output Precision
+						CLIP_DEFAULT_PRECIS,			// Clipping Precision
+						ANTIALIASED_QUALITY,			// Output Quality
+						FF_DONTCARE|DEFAULT_PITCH,		// Family And Pitch
+						"Courier New");					// Font Name
+
+	oldfont = (HFONT)SelectObject(window->hDC, font);           // Selects The Font We Want
+	wglUseFontBitmaps(window->hDC, 32, 96, base);				// Builds 96 Characters Starting At Character 32
+	SelectObject(window->hDC, oldfont);							// Selects The Font We Want
+	DeleteObject(font);									// Delete The Font
+}
+
+GLvoid KillFont(GLvoid)									// Delete The Font List
+{
+	glDeleteLists(base, 96);							// Delete All 96 Characters
+}
+
+GLvoid glPrint(const char *fmt, ...)					// Custom GL "Print" Routine
+{
+	char		text[256];								// Holds Our String
+	va_list		ap;										// Pointer To List Of Arguments
+
+	if (fmt == NULL)									// If There's No Text
+		return;											// Do Nothing
+
+	va_start(ap, fmt);									// Parses The String For Variables
+	    vsprintf(text, fmt, ap);						// And Converts Symbols To Actual Numbers
+	va_end(ap);											// Results Are Stored In Text
+
+	glPushAttrib(GL_LIST_BIT);							// Pushes The Display List Bits
+	glListBase(base - 32);								// Sets The Base Character to 32
+	glCallLists(strlen(text), GL_UNSIGNED_BYTE, text);	// Draws The Display List Text
+	glPopAttrib();										// Pops The Display List Bits
 }
