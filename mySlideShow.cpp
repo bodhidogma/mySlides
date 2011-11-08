@@ -18,10 +18,12 @@
 //#define IMAGE_PATH	_T("c:\\src\\myslides\\images")
 //#define IMAGE_PATH	_T("d:\\data\\pictures\\dcim-jpeg")
 //#define IMAGE_PATH	_T("z:\\media\\photos\\2011")
+//#define IMAGE_PATH	_T("z:\\pmcavoy\\pictures\\myinet\\2010\\October")
 
 
 GL_Window*	g_window;
 Keys*		g_keys;
+GLuint base;	// base display list for font set
 
 // our image(s)
 ImageFactory *g_slideFactory;
@@ -48,12 +50,15 @@ BOOL Initialize (GL_Window* window, Keys* keys)
 	glHint (GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);	// Set Perspective Calculations To Most Accurate
 
 	glEnable(GL_TEXTURE_2D);							// Enable Texture Mapping
-	glColor4f(1.0f,1.0f,1.0f, 0.5f);
-	glBlendFunc(GL_ONE,GL_SRC_ALPHA);					// Set Blending Mode (Cheap / Quick)
+//	glBlendFunc(GL_ONE,GL_SRC_ALPHA);					// Set Blending Mode (Cheap / Quick)
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 	glEnable(GL_BLEND);									// Enable Blending
+//	glColor4f(1.0f,1.0f,1.0f, 1.0f);
 
 	// init timer
-	SetTimer( window->hWnd, 101, TIMER_DURATION *1000, 0 );
+//	SetTimer( window->hWnd, 101, TIMER_DURATION *1000, 0 );
+
+	BuildFont(window);
 
 	return TRUE;
 }
@@ -77,7 +82,7 @@ void WindowWasResized(int width, int height)
 
 /** Update - called just before every Draw
 */
-void Update (GL_Window* window, DWORD milliseconds)
+void Update (GL_Window* window, DWORD msElapsed)
 {
 	// process keypress
 	if (g_keys->keyDown [VK_ESCAPE] == TRUE)
@@ -86,7 +91,15 @@ void Update (GL_Window* window, DWORD milliseconds)
 	if (g_keys->keyDown [VK_F1] == TRUE)
 		ToggleFullscreen (g_window);
 
+	if (g_keys->keyDown [VK_RIGHT] == TRUE)	// pick next slide
+	{
+		if (g_slideFactory)
+			g_slideFactory->nextSlide(0);
+	}
+
 	// other update functions
+	if (g_slideFactory)
+		g_slideFactory->elapsedCheck(msElapsed, TIMER_DURATION);
 }
 
 /** Draw - called to dispaly / render scene
@@ -103,6 +116,58 @@ void Draw (GL_Window* window)
 */
 void Timer (GL_Window* window)
 {
-	if (g_slideFactory)
-		g_slideFactory->nextSlide();
+//	if (g_slideFactory) g_slideFactory->nextSlide();
+}
+
+/* -- */
+
+GLvoid BuildFont(GL_Window* window)								// Build Our Bitmap Font
+{
+	HFONT	font;										// Windows Font ID
+	HFONT	oldfont;									// Used For Good House Keeping
+
+	base = glGenLists(96);								// Storage For 96 Characters
+
+	font = CreateFont(	-24,							// Height Of Font
+						0,								// Width Of Font
+						0,								// Angle Of Escapement
+						0,								// Orientation Angle
+						FW_BOLD,						// Font Weight
+						FALSE,							// Italic
+						FALSE,							// Underline
+						FALSE,							// Strikeout
+						ANSI_CHARSET,					// Character Set Identifier
+						OUT_TT_PRECIS,					// Output Precision
+						CLIP_DEFAULT_PRECIS,			// Clipping Precision
+						ANTIALIASED_QUALITY,			// Output Quality
+						FF_DONTCARE|DEFAULT_PITCH,		// Family And Pitch
+						"Courier New");					// Font Name
+
+	oldfont = (HFONT)SelectObject(window->hDC, font);           // Selects The Font We Want
+	wglUseFontBitmaps(window->hDC, 32, 96, base);				// Builds 96 Characters Starting At Character 32
+	SelectObject(window->hDC, oldfont);							// Selects The Font We Want
+	DeleteObject(font);									// Delete The Font
+}
+
+GLvoid KillFont(GLvoid)									// Delete The Font List
+{
+	glDeleteLists(base, 96);							// Delete All 96 Characters
+}
+
+GLvoid glPrint(const char *fmt, ...)					// Custom GL "Print" Routine
+{
+	char		text[256];								// Holds Our String
+	va_list		ap;										// Pointer To List Of Arguments
+
+	if (fmt == NULL)									// If There's No Text
+		return;											// Do Nothing
+
+	va_start(ap, fmt);									// Parses The String For Variables
+	    vsprintf(text, fmt, ap);						// And Converts Symbols To Actual Numbers
+	va_end(ap);											// Results Are Stored In Text
+
+	glPushAttrib(GL_LIST_BIT);							// Pushes The Display List Bits
+	glListBase(base - 32);								// Sets The Base Character to 32
+	glCallLists(strlen(text), GL_UNSIGNED_BYTE, text);	// Draws The Display List Text
+	glPopAttrib();										// Pops The Display List Bits
 }

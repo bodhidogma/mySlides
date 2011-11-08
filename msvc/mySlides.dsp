@@ -8,12 +8,12 @@ CFG=mySlides - Win32 Debug
 !MESSAGE This is not a valid makefile. To build this project using NMAKE,
 !MESSAGE use the Export Makefile command and run
 !MESSAGE 
-!MESSAGE NMAKE /f "mySlides-vc6.mak".
+!MESSAGE NMAKE /f "mySlides.mak".
 !MESSAGE 
 !MESSAGE You can specify a configuration when running NMAKE
 !MESSAGE by defining the macro CFG on the command line. For example:
 !MESSAGE 
-!MESSAGE NMAKE /f "mySlides-vc6.mak" CFG="mySlides - Win32 Debug"
+!MESSAGE NMAKE /f "mySlides.mak" CFG="mySlides - Win32 Debug"
 !MESSAGE 
 !MESSAGE Possible choices for configuration are:
 !MESSAGE 
@@ -79,7 +79,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 FreeImage.lib scrnsave.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /debug /machine:I386 /out:"../mySlides.exe" /pdbtype:sept /libpath:".."
+# ADD LINK32 FreeImage.lib opengl32.lib glu32.lib scrnsave.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /debug /machine:I386 /out:"../mySlides.exe" /pdbtype:sept /libpath:".."
 
 !ENDIF 
 
@@ -92,11 +92,19 @@ LINK32=link.exe
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
-SOURCE="..\mySlides.cpp"
+SOURCE=..\Image.cpp
 # End Source File
 # Begin Source File
 
-SOURCE="..\mySlides.rc"
+SOURCE=..\ImageFactory.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\mySlides_mswin.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\mySlideShow.cpp
 # End Source File
 # Begin Source File
 
@@ -117,11 +125,19 @@ SOURCE=..\stdafx.cpp
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
 # Begin Source File
 
+SOURCE=..\Image.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\ImageFactory.h
+# End Source File
+# Begin Source File
+
 SOURCE="..\mySlides.h"
 # End Source File
 # Begin Source File
 
-SOURCE=..\resource.h
+SOURCE=..\mySlideShow.h
 # End Source File
 # Begin Source File
 
@@ -133,11 +149,15 @@ SOURCE=..\StdAfx.h
 # PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
 # Begin Source File
 
-SOURCE="..\mySlides-small.ico"
+SOURCE="..\mySlides.ico"
 # End Source File
 # Begin Source File
 
-SOURCE="..\mySlides.ico"
+SOURCE="..\mySlides.rc"
+# End Source File
+# Begin Source File
+
+SOURCE=..\resource.h
 # End Source File
 # End Group
 # Begin Source File

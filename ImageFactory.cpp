@@ -14,7 +14,8 @@ ImageFactory::ImageFactory(TCHAR *basePath,
 {
 	searchBase = basePath;
 	currentName = 0;
-	theSlide = NULL;
+	theSlide = oldSlide = NULL;
+	msElapsed = 0;
 
 	// save max screen res for loading textures
 	maxWidth = theMaxWidth;
@@ -24,7 +25,7 @@ ImageFactory::ImageFactory(TCHAR *basePath,
 	winHeight = theWinHeight;
 
 	// pick next slide
-	this->nextSlide();
+	this->nextSlide(1);
 }
 
 /**
@@ -33,6 +34,8 @@ ImageFactory::~ImageFactory()
 {
 	if (theSlide)
 		delete theSlide;
+	if (oldSlide)
+		delete oldSlide;
 }
 
 /**
@@ -43,10 +46,21 @@ void ImageFactory::updateWinSize(int width, int height)
 	winHeight = height;
 }
 
+void ImageFactory::elapsedCheck(unsigned long msElapse, int nextSeconds)
+{
+	msElapsed += msElapse;
+
+	if (msElapsed >= (nextSeconds * 1000))
+	{
+		nextSlide(1);
+	}
+}
+
 /**
 */
-void ImageFactory::nextSlide()
+void ImageFactory::nextSlide(int doFadeOut)
 {
+	msElapsed = 0;	// reset elapsed time
 	if (currentName == slideNames.size())
 	{
 		slideNames.resize(0);
@@ -54,8 +68,16 @@ void ImageFactory::nextSlide()
 		random_shuffle( slideNames.begin(), slideNames.end() );
 		currentName = 0;
 	}
-	if (theSlide)
-		delete theSlide;
+	if (oldSlide)
+	{
+		delete oldSlide;
+		oldSlide = NULL;
+	}
+	if (doFadeOut && theSlide)
+	{
+		oldSlide = theSlide;
+		oldSlide->setOld();
+	}
 
 	// load new slide
 	theSlide = new Image( slideNames[ currentName ], maxWidth,maxHeight);
@@ -68,8 +90,13 @@ void ImageFactory::nextSlide()
 */
 int ImageFactory::drawSlide()
 {
-	if (theSlide)
+	if (oldSlide)
+		oldSlide->Draw(winWidth, winHeight);
+
+	if (theSlide) {
 		theSlide->Draw(winWidth, winHeight);
+//		if (theSlide->fade_alpha > 1.0)	theSlide->setOld();
+	}
 
 	return 0;
 }

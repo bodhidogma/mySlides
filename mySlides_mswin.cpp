@@ -295,7 +295,7 @@ LRESULT CALLBACK WindowProc (HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			Timer(window);
 			break;
 
-		case WM_KEYDOWN:
+		case WM_KEYDOWN:	// http://msdn.microsoft.com/en-us/library/ms927178.aspx
 			if ((wParam >= 0) && (wParam <= 255))
 			{
 				window->keys->keyDown [wParam] = TRUE;	// Set The Selected Key (wParam) To True
@@ -442,7 +442,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 							glFlush ();
 							SwapBuffers (window.hDC);
 
-							Sleep(150);	// delay so other messages can be processed
+							Sleep(30);	// delay so other messages can be processed
 						}
 					}
 				}
@@ -463,3 +463,4 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 	UnregisterClass (application.className, application.hInstance);		// UnRegister Window Class
 	return 0;
 }
+

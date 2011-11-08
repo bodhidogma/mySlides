@@ -14,4 +14,8 @@ void Update (GL_Window* window, DWORD milliseconds);	// Motion Updates
 void Draw (GL_Window* window);							// All Your Scene Drawing
 void Timer (GL_Window* window);
 
+GLvoid BuildFont(GL_Window* window);
+GLvoid KillFont(GLvoid);
+GLvoid glPrint(const char *fmt, ...);
+
 #endif

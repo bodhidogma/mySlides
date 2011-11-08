@@ -14,8 +14,9 @@ public:
 
 	void updateWinSize(int width, int height);
 
-	void nextSlide();
-	int drawSlide();
+	void nextSlide(int doFadeOut);
+	int  drawSlide();
+	void elapsedCheck( unsigned long msElapse, int nextSeconds );
 
 private:
 	void loadSlides(tstring basePath);
@@ -25,9 +26,11 @@ private:
 	int currentName;
 
 	Image *theSlide;
+	Image *oldSlide;
 
 	int winWidth, winHeight;
 	int maxWidth, maxHeight;
+	unsigned long msElapsed;
 };
 
 #endif

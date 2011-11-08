@@ -6,6 +6,7 @@
 
 struct Metadata
 {
+	tstring name;
 	unsigned int width;
 	unsigned int height;
 };
@@ -17,6 +18,9 @@ public:
 	~Image();
 
 	int Draw(int width, int height);
+	void setOld();
+
+	float fade_alpha;
 
 private:
 	int loadImageTexture(tstring imageName, int maxWidth, int maxHeight);
@@ -26,6 +30,7 @@ private:
 	GLuint textureID;
 	Metadata m;
 	float x, y;
+	BOOL isNew;
 };
 
 #endif
