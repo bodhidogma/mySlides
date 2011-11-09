@@ -133,7 +133,7 @@ void Image::setOld()
 int Image::Draw(int width, int height)
 {
 	if ( this->x < 1.0 ) this->x += .1f;
-	if (this->y < 100.0) this->y += .5f;
+	if (this->y < 100.0) this->y += 1.0f;
 
 	if (fade_alpha < 1.0) fade_alpha += FADE_DELTA;
 
@@ -144,7 +144,7 @@ int Image::Draw(int width, int height)
 	float i_aspect = (float)this->m.width / (float)this->m.height;
 
 
-#if 1
+#if 0
 	// modelview adjustments
 	glMatrixMode (GL_MODELVIEW);
     glLoadIdentity();									// reset matrix
@@ -173,6 +173,8 @@ int Image::Draw(int width, int height)
 
 	float imgAlpha = (isNew ? fade_alpha : (float)(1.0-fade_alpha));
 	glColor4f( 1.0f, 1.0f, 1.0f , imgAlpha );
+	
+	glEnable(GL_BLEND);
 	glBegin(GL_QUADS);
 		glTexCoord2f(0.0,0.0); glVertex3f(-xp,-yp,0.0);		//(4:0,1) ___ (3:1,1)
 		glTexCoord2f(1.0,0.0); glVertex3f( xp,-yp,0.0);		//       |   |
@@ -181,10 +183,13 @@ int Image::Draw(int width, int height)
 	glEnd();
 
 	// display some text
-	if (0 && isNew)
+	if (1 && isNew)
 	{
-		glColor3f(1.0f,1.0f,0.0f);
-		glRasterPos2f(-1.0f,yp-.1f);
+		glDisable(GL_BLEND);
+		glColor4f(1.0f,1.0f,0.0f,1.0f);
+//		glRasterPos2f(-1.0f,-0.4f);
+//		glTranslatef( -10.0f, -5.0f, 1.0f );
+//		glRotatef(this->y, 0.0f, 1.0f, 0.0f);
 		glPrint(m.name.c_str());
 	}
 	return 0;

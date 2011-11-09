@@ -23,7 +23,10 @@
 
 GL_Window*	g_window;
 Keys*		g_keys;
-GLuint base;	// base display list for font set
+
+GLuint base;					// base display list for font set
+GLYPHMETRICSFLOAT gmf[256];
+
 
 // our image(s)
 ImageFactory *g_slideFactory;
@@ -123,16 +126,16 @@ void Timer (GL_Window* window)
 
 GLvoid BuildFont(GL_Window* window)								// Build Our Bitmap Font
 {
-	HFONT	font;										// Windows Font ID
-	HFONT	oldfont;									// Used For Good House Keeping
+	HFONT	font;
+	HFONT	oldfont;
 
-	base = glGenLists(96);								// Storage For 96 Characters
+	base = glGenLists(256);
 
-	font = CreateFont(	-20,							// Height Of Font
+	font = CreateFont(	-12,							// Height Of Font
 						0,								// Width Of Font
 						0,								// Angle Of Escapement
 						0,								// Orientation Angle
-						FW_BOLD,						// Font Weight
+						FW_NORMAL,						// Font Weight
 						FALSE,							// Italic
 						FALSE,							// Underline
 						FALSE,							// Strikeout
@@ -141,41 +144,53 @@ GLvoid BuildFont(GL_Window* window)								// Build Our Bitmap Font
 						CLIP_DEFAULT_PRECIS,			// Clipping Precision
 						ANTIALIASED_QUALITY,			// Output Quality
 						FF_DONTCARE|DEFAULT_PITCH,		// Family And Pitch
-						_T("Courier New"));					// Font Name
+						_T("Comic Sans MS"));			// Font Name
 
-	oldfont = (HFONT)SelectObject(window->hDC, font);           // Selects The Font We Want
-	wglUseFontBitmaps(window->hDC, 32, 96, base);				// Builds 96 Characters Starting At Character 32
-	SelectObject(window->hDC, oldfont);							// Selects The Font We Want
-	DeleteObject(font);									// Delete The Font
+	oldfont = (HFONT)SelectObject(window->hDC, font);
+//	wglUseFontBitmaps(window->hDC, 0, 255, base);
+	wglUseFontOutlines( window->hDC, 0, 255, base,
+		0.0f,
+		0.02f,	// font thickness in Z-dir
+		WGL_FONT_POLYGONS,
+		gmf);
+
+	SelectObject(window->hDC, oldfont);
+	DeleteObject(font);
 }
 
-GLvoid KillFont(GLvoid)									// Delete The Font List
+GLvoid KillFont(GLvoid)
 {
-	glDeleteLists(base, 96);							// Delete All 96 Characters
+	glDeleteLists(base, 265);
 }
 
-GLvoid glPrint(const TCHAR *fmt, ...)					// Custom GL "Print" Routine
+GLvoid glPrint(const TCHAR *fmt, ...)
 {
-	TCHAR		text[256];								// Holds Our String
-	va_list		ap;										// Pointer To List Of Arguments
+	TCHAR		text[256];
+	va_list		ap;
 
-	if (fmt == NULL)									// If There's No Text
-		return;											// Do Nothing
+	if (fmt == NULL)
+		return;
 
-	va_start(ap, fmt);									// Parses The String For Variables
+	va_start(ap, fmt);
 #ifdef UNICODE
-	_vsntprintf_s(text, 256, 256, fmt, ap);						// And Converts Symbols To Actual Numbers
+	_vsntprintf_s(text, 256, 256, fmt, ap);
 #else
-	_vsntprintf(text, 256, fmt, ap);						// And Converts Symbols To Actual Numbers
+	_vsntprintf(text, 256, fmt, ap);
 #endif
-	va_end(ap);											// Results Are Stored In Text
+	va_end(ap);
 
-	glPushAttrib(GL_LIST_BIT);							// Pushes The Display List Bits
-	glListBase(base - 32);								// Sets The Base Character to 32
-#ifdef UNICODE
-	glCallLists(_tcslen(text), GL_UNSIGNED_SHORT, text);	// Draws The Display List Text
-#else
-	glCallLists(_tcslen(text), GL_UNSIGNED_BYTE, text);	// Draws The Display List Text
+#if 0
+	float length = 0.0f
+	for (unsigned int loop=0;loop<(_tcslen(text));loop++)
+		length+=gmf[text[loop]].gmfCellIncX;
 #endif
-	glPopAttrib();										// Pops The Display List Bits
+
+	glPushAttrib(GL_LIST_BIT);	// Pushes The Display List Bits
+	glListBase(base);
+#ifdef UNICODE
+	glCallLists(_tcslen(text), GL_UNSIGNED_SHORT, text);
+#else
+	glCallLists(_tcslen(text), GL_UNSIGNED_BYTE, text);
+#endif
+	glPopAttrib();
 }
