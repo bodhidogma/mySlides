@@ -15,7 +15,7 @@ ImageFactory::ImageFactory(TCHAR *basePath,
 	searchBase = basePath;
 	currentName = 0;
 	theSlide = oldSlide = NULL;
-	msElapsed = 0;
+	sElapsed = 0;
 
 	// save max screen res for loading textures
 	maxWidth = theMaxWidth;
@@ -46,11 +46,11 @@ void ImageFactory::updateWinSize(int width, int height)
 	winHeight = height;
 }
 
-void ImageFactory::elapsedCheck(unsigned long msElapse, int nextSeconds)
+void ImageFactory::elapsedCheck(float sElapse, int nextSeconds)
 {
-	msElapsed += msElapse;
+	this->sElapsed += sElapse;
 
-	if (msElapsed >= (unsigned)(nextSeconds * 1000))
+	if (this->sElapsed >= (float)nextSeconds)
 	{
 		nextSlide(1);
 	}
@@ -60,7 +60,7 @@ void ImageFactory::elapsedCheck(unsigned long msElapse, int nextSeconds)
 */
 void ImageFactory::nextSlide(int doFadeOut)
 {
-	msElapsed = 0;	// reset elapsed time
+	sElapsed = 0;	// reset elapsed time
 	if (currentName == slideNames.size())
 	{
 		slideNames.resize(0);
@@ -91,12 +91,11 @@ void ImageFactory::nextSlide(int doFadeOut)
 */
 int ImageFactory::drawSlide()
 {
-	if (oldSlide)
+	if (oldSlide && glIsEnabled(GL_BLEND))
 		oldSlide->Draw(winWidth, winHeight);
 
 	if (theSlide) {
 		theSlide->Draw(winWidth, winHeight);
-//		if (theSlide->fade_alpha > 1.0)	theSlide->setOld();
 	}
 
 	return 0;

@@ -30,10 +30,13 @@
     <ClCompile Include="..\ImageFactory.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\mySlides_mswin.cpp">
+    <ClCompile Include="..\mySlideShow.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\mySlideShow.cpp">
+    <ClCompile Include="..\mySlideSaver.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\rsWin32Saver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -62,6 +65,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\mySlideShow.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\rsTimer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\rsWin32Saver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

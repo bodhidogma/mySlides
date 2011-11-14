@@ -23,7 +23,9 @@
 #define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
 // Windows Header Files:
 #include <windows.h>
-#include <scrnsave.h>
+#include <mmsystem.h>
+#include <CommCtrl.h>
+//#include <scrnsave.h>
 
 // C RunTime Header Files
 #include <stdlib.h>

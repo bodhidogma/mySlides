@@ -38,9 +38,9 @@ void ReshapeGL (int width, int height)
 	glViewport (0, 0, (GLsizei)(width), (GLsizei)(height));		// Reset The Current Viewport
 	glMatrixMode (GL_PROJECTION);
 	glLoadIdentity ();											// Reset The Projection Matrix
-#if 1
+#if 0
 	gluPerspective (45.0f, (GLfloat)(width)/(GLfloat)(height),
-					1.0f, 1000.0f);
+					1.0f, 100.0f);
 #else
 //	GLfloat zNear = 1.0f;
 //	GLfloat zFar = 1000.0f;
@@ -48,7 +48,7 @@ void ReshapeGL (int width, int height)
 //	GLfloat fH = (float)tan( float(90.0 / 360.0f * 3.14159f) ) * zNear;
 //	GLfloat fW = fH * aspect;
 	
-	glOrtho(-1*aspect,1*aspect, -1,1, -1,1000);
+	glOrtho(-1*aspect,1*aspect, -1,1, -1,100);
 #endif
 	glMatrixMode (GL_MODELVIEW);
 	glLoadIdentity ();											// Reset The Modelview Matrix
@@ -74,34 +74,102 @@ BOOL ChangeScreenResolution (int width, int height, int bitsPerPixel)
 	return TRUE;
 }
 
+
+// Choose the best pixel format possible, giving preference to harware
+// accelerated modes.
+void setBestPixelFormat(HDC hdc){
+	int moreFormats, score = 0, nPixelFormat = 1, bestPixelFormat = 0, temp;
+	PIXELFORMATDESCRIPTOR pfd;
+
+	// global?
+	int pfd_swap_exchange = 0;
+	int pfd_swap_copy = 0;
+
+	// Try to find the best pixel format
+	moreFormats = DescribePixelFormat(hdc, nPixelFormat, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
+	while(moreFormats){
+		// Absolutely must have these 4 attributes
+		if((pfd.dwFlags & PFD_SUPPORT_OPENGL)
+			&& (pfd.dwFlags & PFD_DRAW_TO_WINDOW)
+			&& (pfd.dwFlags & PFD_DOUBLEBUFFER)
+			&& (pfd.iPixelType == PFD_TYPE_RGBA)){
+			// If this pixel format is good, see if it's the best...
+			temp = 0;
+			// color depth and z depth?
+			temp += pfd.cColorBits + 2 * pfd.cDepthBits;
+			if(pfd.cColorBits > 16)
+				temp += (16 - pfd.cColorBits) / 2;
+			// hardware accelerated?
+			if(pfd.dwFlags & PFD_GENERIC_FORMAT){
+				if(pfd.dwFlags & PFD_GENERIC_ACCELERATED)
+					temp += 1000;
+			}
+			else
+				temp += 2000;
+			// Compare score
+			if(temp > score){
+				score = temp;
+				bestPixelFormat = nPixelFormat;
+			}
+		}
+		// Try the next pixel format
+		nPixelFormat++;
+		moreFormats = DescribePixelFormat(hdc, nPixelFormat, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
+	}
+
+	// Set the pixel format for the device context
+	if(bestPixelFormat){
+		DescribePixelFormat(hdc, bestPixelFormat, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
+		SetPixelFormat(hdc, bestPixelFormat, &pfd);
+		if(pfd.dwFlags & PFD_SWAP_EXCHANGE)
+			pfd_swap_exchange = 1;
+		else
+			pfd_swap_exchange = 0;
+		if(pfd.dwFlags & PFD_SWAP_COPY)
+			pfd_swap_copy = 1;
+		else
+			pfd_swap_copy = 0;
+	}
+	else{  // Just in case a best pixel format wasn't found
+		PIXELFORMATDESCRIPTOR defaultPfd = {
+			sizeof(PIXELFORMATDESCRIPTOR),          // Size of this structure
+			1,                                      // Version of this structure    
+			PFD_DRAW_TO_WINDOW |                    // Draw to Window (not to bitmap)
+			PFD_SUPPORT_OPENGL |					// Support OpenGL calls in window
+			PFD_DOUBLEBUFFER,                       // Double buffered
+			PFD_TYPE_RGBA,                          // RGBA Color mode
+			24,                                     // Want 24bit color 
+			0,0,0,0,0,0,                            // Not used to select mode
+			0,0,                                    // Not used to select mode
+			0,0,0,0,0,                              // Not used to select mode
+			24,                                     // Size of depth buffer
+			0,                                      // Not used to select mode
+			0,                                      // Not used to select mode
+			PFD_MAIN_PLANE,                         // Draw in main plane
+			0,                                      // Not used to select mode
+			0,0,0 };                                // Not used to select mode
+		bestPixelFormat = ChoosePixelFormat(hdc, &defaultPfd);
+		// ChoosePixelFormat is poorly documented and I don't trust it.
+		// That's the main reason for this whole function.
+		SetPixelFormat(hdc, bestPixelFormat, &defaultPfd);
+		if(defaultPfd.dwFlags & PFD_SWAP_EXCHANGE)
+			pfd_swap_exchange = 1;
+		else
+			pfd_swap_exchange = 0;
+		if(defaultPfd.dwFlags & PFD_SWAP_COPY)
+			pfd_swap_copy = 1;
+		else
+			pfd_swap_copy = 0;
+	}
+}
+
+
 /**
 */
 BOOL CreateWindowGL (GL_Window* window)
 {
 	DWORD windowStyle = WS_OVERLAPPEDWINDOW;
 	DWORD windowExtendedStyle = WS_EX_APPWINDOW;
-
-	PIXELFORMATDESCRIPTOR pfd =									// pfd Tells Windows How We Want Things To Be
-	{
-		sizeof (PIXELFORMATDESCRIPTOR),
-		1,
-		PFD_DRAW_TO_WINDOW |									// Format Must Support Window
-		PFD_SUPPORT_OPENGL |									// Format Must Support OpenGL
-		PFD_DOUBLEBUFFER,										// Must Support Double Buffering
-		PFD_TYPE_RGBA,											// Request An RGBA Format
-		window->init.bitsPerPixel,								// Select Our Color Depth
-		0, 0, 0, 0, 0, 0,										// Color Bits Ignored
-		0,														// No Alpha Buffer
-		0,														// Shift Bit Ignored
-		0,														// No Accumulation Buffer
-		0, 0, 0, 0,												// Accumulation Bits Ignored
-		16,														// 16Bit Z-Buffer (Depth Buffer)  
-		0,														// No Stencil Buffer
-		0,														// No Auxiliary Buffer
-		PFD_MAIN_PLANE,											// Main Drawing Layer
-		0,														// Reserved
-		0, 0, 0													// Layer Masks Ignored
-	};
 
 	RECT windowRect = {0, 0, window->init.width, window->init.height};
 
@@ -153,6 +221,28 @@ BOOL CreateWindowGL (GL_Window* window)
 		DestroyWindow (window->hWnd);
 		window->hWnd = 0;
 	}
+#if 0
+	PIXELFORMATDESCRIPTOR pfd =									// pfd Tells Windows How We Want Things To Be
+	{
+		sizeof (PIXELFORMATDESCRIPTOR),
+		1,
+		PFD_DRAW_TO_WINDOW |									// Format Must Support Window
+		PFD_SUPPORT_OPENGL |									// Format Must Support OpenGL
+		PFD_DOUBLEBUFFER,										// Must Support Double Buffering
+		PFD_TYPE_RGBA,											// Request An RGBA Format
+		window->init.bitsPerPixel,								// Select Our Color Depth
+		0, 0, 0, 0, 0, 0,										// Color Bits Ignored
+		0,														// No Alpha Buffer
+		0,														// Shift Bit Ignored
+		0,														// No Accumulation Buffer
+		0, 0, 0, 0,												// Accumulation Bits Ignored
+		16,														// 16Bit Z-Buffer (Depth Buffer)  
+		0,														// No Stencil Buffer
+		0,														// No Auxiliary Buffer
+		PFD_MAIN_PLANE,											// Main Drawing Layer
+		0,														// Reserved
+		0, 0, 0													// Layer Masks Ignored
+	};
 
 	PixelFormat = ChoosePixelFormat (window->hDC, &pfd);	// Find A Compatible Pixel Format
 	if (PixelFormat == 0)
@@ -174,7 +264,9 @@ BOOL CreateWindowGL (GL_Window* window)
 		window->hWnd = 0;
 		return FALSE;
 	}
-
+#else
+	setBestPixelFormat(window->hDC);
+#endif
 	window->hRC = wglCreateContext (window->hDC);	// Try To Get A Rendering Context
 	if (window->hRC == 0)
 	{
@@ -317,6 +409,11 @@ LRESULT CALLBACK WindowProc (HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			g_createFullScreen = (g_createFullScreen == TRUE) ? FALSE : TRUE;
 			PostMessage (hWnd, WM_QUIT, 0, 0);
 		break;
+
+//		case WM_PAINT:
+		case WM_ERASEBKGND:
+//			return TRUE;
+			break;
 	}
 
 	return DefWindowProc (hWnd, uMsg, wParam, lParam);

@@ -16,7 +16,7 @@ public:
 
 	void nextSlide(int doFadeOut);
 	int  drawSlide();
-	void elapsedCheck( unsigned long msElapse, int nextSeconds );
+	void elapsedCheck( float sElapse, int nextSeconds );
 
 private:
 	void loadSlides(tstring basePath);
@@ -30,7 +30,7 @@ private:
 
 	int winWidth, winHeight;
 	int maxWidth, maxHeight;
-	unsigned long msElapsed;
+	float sElapsed;
 };
 
 #endif

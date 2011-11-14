@@ -6,7 +6,7 @@
 
 extern GLvoid glPrint(const TCHAR *fmt, ...);
 
-#define FADE_DELTA	0.1f
+#define FADE_DELTA	0.05f
 
 /**
 */
@@ -174,7 +174,7 @@ int Image::Draw(int width, int height)
 	float imgAlpha = (isNew ? fade_alpha : (float)(1.0-fade_alpha));
 	glColor4f( 1.0f, 1.0f, 1.0f , imgAlpha );
 	
-	glEnable(GL_BLEND);
+//	glEnable(GL_BLEND);
 	glBegin(GL_QUADS);
 		glTexCoord2f(0.0,0.0); glVertex3f(-xp,-yp,0.0);		//(4:0,1) ___ (3:1,1)
 		glTexCoord2f(1.0,0.0); glVertex3f( xp,-yp,0.0);		//       |   |
@@ -183,15 +183,17 @@ int Image::Draw(int width, int height)
 	glEnd();
 
 	// display some text
-	if (1 && isNew)
+#if 0
+	if (0 && isNew)
 	{
-		glDisable(GL_BLEND);
+//		glDisable(GL_BLEND);
 		glColor4f(1.0f,1.0f,0.0f,1.0f);
 //		glRasterPos2f(-1.0f,-0.4f);
 //		glTranslatef( -10.0f, -5.0f, 1.0f );
 //		glRotatef(this->y, 0.0f, 1.0f, 0.0f);
 		glPrint(m.name.c_str());
 	}
+#endif
 	return 0;
 }
 

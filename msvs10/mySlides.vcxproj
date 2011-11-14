@@ -40,6 +40,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
+    <TargetExt>.scr</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -55,7 +56,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..</AdditionalLibraryDirectories>
-      <AdditionalDependencies>FreeImage.lib;scrnsavw.lib;opengl32.lib;glu32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>FreeImage.lib;opengl32.lib;glu32.lib;Winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>..\$(TargetName)$(TargetExt)</OutputFile>
     </Link>
   </ItemDefinitionGroup>
@@ -74,6 +75,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <OutputFile>..\$(TargetName)$(TargetExt)</OutputFile>
+      <AdditionalDependencies>FreeImage.lib;opengl32.lib;glu32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -86,14 +88,19 @@
     <ClInclude Include="..\ImageFactory.h" />
     <ClInclude Include="..\mySlideShow.h" />
     <ClInclude Include="..\Resource.h" />
+    <ClInclude Include="..\rsTimer.h" />
+    <ClInclude Include="..\rsWin32Saver.h" />
     <ClInclude Include="..\stdafx.h" />
     <ClInclude Include="..\mySlides.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Image.cpp" />
     <ClCompile Include="..\ImageFactory.cpp" />
-    <ClCompile Include="..\mySlideShow.cpp" />
-    <ClCompile Include="..\mySlides_mswin.cpp" />
+    <ClCompile Include="..\mySlideSaver.cpp" />
+    <ClCompile Include="..\mySlideShow.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\rsWin32Saver.cpp" />
     <ClCompile Include="..\stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
