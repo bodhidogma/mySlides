@@ -31,7 +31,7 @@ STYLE DS_MODALFRAME | DS_SETFONT | WS_CAPTION | WS_SYSMENU
 CAPTION "About"
 FONT 8, "System"
 {
-    ICON            "", IDC_STATIC, 14, 9, 16, 16, SS_ICON
+    ICON            "", ID_APP, 14, 9, 16, 16, SS_ICON
     LTEXT           "mySlides Version 1.0", IDC_STATIC, 49, 10, 119, 8, SS_LEFT | SS_NOPREFIX
     LTEXT           "Copyright (C) 2011", IDC_STATIC, 49, 20, 119, 8, SS_LEFT
     DEFPUSHBUTTON   "OK", IDOK, 195, 6, 30, 11, WS_GROUP

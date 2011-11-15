@@ -27,16 +27,20 @@ typedef struct {									// Contains Information Vital To A Window
 	DWORD				lastTickCount;				// Tick Counter
 } _Window;										// GL_Window
 
+/** Simple Class to handle some window functions
+*/
 class AppWindow
 {
 public:
 	AppWindow();
 	~AppWindow();
 	
-	int Register();
-	BOOL InitInstance();
-	static int WindowProc();
-	
+	int Register(HINSTANCE);
+	BOOL InitInstance(HINSTANCE, int);
+	static LRESULT CALLBACK staticWindProc(HWND, UINT, WPARAM, LPARAM);
+	LRESULT AppWindProc(HWND, UINT, WPARAM, LPARAM);
+
+	int MessagePump();
 private:
 };
 
