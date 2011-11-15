@@ -26,6 +26,9 @@
 #include <mmsystem.h>
 #include <CommCtrl.h>
 
+#pragma comment( lib, "Winmm.lib" )
+#pragma comment( lib, "ComCtl32.lib" )
+
 // C RunTime Header Files
 #include <stdlib.h>
 #include <malloc.h>

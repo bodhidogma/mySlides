@@ -11,7 +11,19 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\Image.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\src\ImageFactory.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\src\main_win32.cpp" />
+    <ClCompile Include="..\src\mySlideSaver.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\src\rsWin32Saver.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\src\stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
     </ClCompile>
@@ -20,8 +32,13 @@
     <ResourceCompile Include="..\src\mySlides.rc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\src\Image.h" />
+    <ClInclude Include="..\src\ImageFactory.h" />
+    <ClInclude Include="..\src\main_window.h" />
     <ClInclude Include="..\src\mySlides.h" />
     <ClInclude Include="..\src\Resource.h" />
+    <ClInclude Include="..\src\rsTimer.h" />
+    <ClInclude Include="..\src\rsWin32Saver.h" />
     <ClInclude Include="..\src\stdafx.h" />
   </ItemGroup>
   <ItemGroup>

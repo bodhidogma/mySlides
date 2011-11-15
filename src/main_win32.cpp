@@ -2,7 +2,8 @@
 //
 
 #include "stdafx.h"
-#include "mySlides.h"
+#include "Resource.h"
+#include "main_window.h"
 
 #define MAX_LOADSTRING 100
 
@@ -17,8 +18,6 @@ BOOL				InitInstance(HINSTANCE, int);
 LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK	About(HWND, UINT, WPARAM, LPARAM);
 
-int PaintImage(HWND hWnd);
-FIBITMAP *ReadImage( string &imageName );
 
 /**
 */
@@ -32,7 +31,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
  	// TODO: Place code here.
 	MSG msg;
-	HACCEL hAccelTable;
+//	HACCEL hAccelTable;
 
 	// Initialize global strings
 	LoadString(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
@@ -199,124 +198,25 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	return (INT_PTR)FALSE;
 }
 
-/**
+/**  AppWindow Class Implementation
 */
-int PaintImage(HWND hWnd)
+
+AppWindow::AppWindow()
 {
-	PAINTSTRUCT ps;
-	HDC hdc;
-	RECT r;
-
-	GetClientRect( hWnd, &r );
-
-	hdc = BeginPaint(hWnd, &ps);
-//	HBRUSH br = GetSysColorBrush( COLOR_BACKGROUND );
-//	FillRect( hdc, &r, br );
-
-	std::string imageName = "images\\IMG_0138.JPG";
-	FIBITMAP *pImage = ReadImage( imageName  );
-
-	if (pImage)
-	{
-		int winWidth = r.right;
-		int winHeight = r.bottom;
-
-		long imgWidth = FreeImage_GetWidth( pImage );
-		long imgHeight = FreeImage_GetHeight( pImage );
-
-        //
-        // Now calculate stretch factor
-        //
-        float x_stretch = (float) winWidth / imgWidth;
-        float y_stretch = (float) winHeight / imgHeight;
-        float stretch;
-        if ( x_stretch < 1 || y_stretch < 1 )
-            stretch = x_stretch < y_stretch ? x_stretch : y_stretch;
-        else
-            stretch = x_stretch < y_stretch ? x_stretch : y_stretch;
-        SetStretchBltMode( hdc, COLORONCOLOR );
-        StretchDIBits( hdc, 
-                       ( winWidth - imgWidth * stretch ) / 2,   //XDest
-                       ( winHeight - imgHeight * stretch ) / 2, //YDest
-                       imgWidth * stretch + .5,              //DestHeight
-                       imgHeight * stretch + .5,             //DestWidth
-                       0, 0,                                            //XSrc, YSrc
-                       imgWidth, imgHeight,       //SrcHeight, SrcWidth
-                       FreeImage_GetBits(pImage),
-                       FreeImage_GetInfo(pImage),
-                       DIB_RGB_COLORS,
-                       SRCCOPY );
-
-	}
-	EndPaint(hWnd, &ps);
-	return 0;
 }
 
-
-/**
-*/
-#if 0
-void LoadFileNames( string base, vector<string> &collection )
+AppWindow::~AppWindow()
 {
-    if ( base.end()[ -1 ] != '/' )
-        base += '/';
-    WIN32_FIND_DATA fd;
-    HANDLE h = FindFirstFile( ( base + "*.jpg" ).c_str(), &fd );
-    if ( h != INVALID_HANDLE_VALUE ) {
-        bool done = false;
-        while ( !done ) {
-            if ( ( fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) == 0 )
-                collection.push_back( base + fd.cFileName );
-            done = !FindNextFile( h, &fd );
-        }
-        FindClose( h );
-    }
-    h = FindFirstFile( ( base + "*" ).c_str(), &fd );
-    if ( h != INVALID_HANDLE_VALUE ) {
-        bool done = false;
-        while ( !done ) {
-            const string name = fd.cFileName;
-            if ( name != "." && name != ".." ) 
-            {
-                if ( fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY )
-                    LoadFileNames( base + fd.cFileName, collection );
-            }
-            done = !FindNextFile( h, &fd );
-        }
-        FindClose( h );
-    }
 }
-#endif
 
-/**
-*/
-FIBITMAP *ReadImage( string &imageName )
+AppWindow::InitInstance()
 {
-    cout << "Loading image file " << imageName << "\n";
+}
 
-	FREE_IMAGE_FORMAT fifmt = FreeImage_GetFileType(imageName.c_str(),0);
-	FIBITMAP *p = FreeImage_Load(fifmt, imageName.c_str(),0);
+AppWindow::Register()
+{
+}
 
-	FITAG *tag = NULL;
-	FreeImage_GetMetadata(FIMD_EXIF_MAIN, p, "Orientation", &tag);
-	short *rot = 0;
-	if (tag != NULL) {
-		rot = (short*)FreeImage_GetTagValue(tag);
-		cout << "\tOrientation: " << *rot << "\n";
-	}
-	// http://sylvana.net/jpegcrop/exif_orientation.html
-
-	switch (*rot) {
-	case 3:		// CCW-180
-		p = FreeImage_RotateClassic(p, 180);
-		break;
-	case 6:		// CCW-270
-		p = FreeImage_RotateClassic(p, 270);
-		break;
-	case 8:		// CCW-90
-		p = FreeImage_RotateClassic(p, 90);
-		break;
-	}
-
-	return p;
+AppWindow::WindowProc()
+{
 }
