@@ -27,6 +27,9 @@ typedef struct {									// Contains Information Vital To A Window
 	DWORD				lastTickCount;				// Tick Counter
 } _Window;										// GL_Window
 
+// externally defined class
+class SlideSaver;
+
 /** Simple Class to handle some window functions
 */
 class AppWindow
@@ -35,11 +38,15 @@ public:
 	AppWindow();
 	~AppWindow();
 	
-	BOOL	RegisterWindow(HINSTANCE hInstance);
-	BOOL	InitInstance(int nCmdShow);
-	int		MessagePump();
-	LRESULT	AppWindProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+	void    initFullScreen(BOOL doFS) {window.init.isFullScreen = doFS;}
+	void	initSize(int w, int h){window.init.width=w; window.init.height=h;}
 
+	BOOL	registerWindow(HINSTANCE hInstance);
+	BOOL	createWindow(int nCmdShow);
+	int		messagePump();
+	LRESULT	appWindProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+
+	SlideSaver *saver;
 private:
 	Application *app;
 	_Window window;

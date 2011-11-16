@@ -4,23 +4,21 @@
 #include "stdafx.h"
 #include "Resource.h"
 #include "main_window.h"
-
-// Global Variables:
-AppWindow myWindow;
+#include "mySlideSaver.h"
 
 /**
 */
-int startWindowedApp(HINSTANCE hInstance, int nCmdShow)
+int startApp(AppWindow *aw, HINSTANCE hInstance, int nCmdShow)
 {
 	// register window class
-	myWindow.RegisterWindow(hInstance);
+	aw->registerWindow(hInstance);
 
 	// Perform application initialization:
-	if (!myWindow.InitInstance(nCmdShow))
+	if (!aw->createWindow(nCmdShow))
 		return FALSE;
 
 	// run message pump
-	return myWindow.MessagePump();
+	return aw->messagePump();
 }
 
 /**
@@ -33,7 +31,21 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
 
-	return startWindowedApp(hInstance, nCmdShow);
+	AppWindow *myAppWin = new AppWindow();
+	SlideSaver *mySaver = new SlideSaver();
+	int ret = 0;
+
+	if (myAppWin) {
+//		myAppWin->initFullScreen(TRUE);
+//		myAppWin->initSize(640,480);
+		myAppWin->saver = mySaver;
+
+		ret = startApp(myAppWin, hInstance, nCmdShow);	
+		delete myAppWin;
+	}
+	if (mySaver) delete mySaver;
+
+	return ret;
 }
 
 /**  AppWindow Class Implementation
@@ -43,17 +55,20 @@ AppWindow::AppWindow()
 {
 	ZeroMemory(&window, sizeof(_Window));
 	app = NULL;
+	saver = NULL;
+
+	window.init.width = 320;
+	window.init.height = 240;
 }
 
 AppWindow::~AppWindow()
 {
-	if (app)
-		delete app;
+	if (app) delete app;
 }
 
 /**
 */
-BOOL AppWindow::RegisterWindow(HINSTANCE hInstance)
+BOOL AppWindow::registerWindow(HINSTANCE hInstance)
 {
 	WNDCLASSEX wcex = {0};
 
@@ -66,23 +81,31 @@ BOOL AppWindow::RegisterWindow(HINSTANCE hInstance)
 	LoadString(hInstance, IDC_MYSLIDES, this->app->className, MAX_LOADSTRING);
 	LoadString(hInstance, IDS_APP_TITLE, this->window.init.title, MAX_LOADSTRING);
 
+	if (this->window.init.isFullScreen) {
+		wcex.hCursor = 0;
+	}
+	else {
+		wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
+	}
+
 	wcex.cbSize = sizeof(WNDCLASSEX);
 
-	wcex.style			= CS_HREDRAW | CS_VREDRAW;
+	wcex.style			= CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
 	wcex.lpfnWndProc	= this->staticWindProc;
 	wcex.cbClsExtra		= 0;
 	wcex.cbWndExtra		= 0;
 	wcex.hInstance		= this->app->hInstance;
-	wcex.hIcon			= LoadIcon(this->app->hInstance, MAKEINTRESOURCE(ID_APP));
-	wcex.hCursor		= LoadCursor(NULL, IDC_ARROW);
-	wcex.hbrBackground	= (HBRUSH)(COLOR_WINDOW+1);
+	wcex.hIcon			= LoadIcon(wcex.hInstance, MAKEINTRESOURCE(ID_APP));
+//	wcex.hCursor		= LoadCursor(NULL, IDC_ARROW);
+//	wcex.hbrBackground	= (HBRUSH)(COLOR_WINDOW+1);				// default BG color
+	wcex.hbrBackground	= HBRUSH(GetStockObject(BLACK_BRUSH));	// default BG color
+//	wcex.hbrBackground	= NULL;
 	wcex.lpszClassName	= this->app->className;
-//	wcex.lpszMenuName	= MAKEINTRESOURCE(IDC_MYSLIDES);
+	wcex.lpszMenuName	= NULL;
 //	wcex.hIconSm		= LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
 	// RegisterClass is supposed to succeed
-	if (RegisterClassEx(&wcex) == 0)
-	{
+	if (RegisterClassEx(&wcex) == 0) {
 		MessageBox (HWND_DESKTOP, _T("RegisterClassEx Failed!"), _T("Error"), MB_OK | MB_ICONEXCLAMATION);
 		return FALSE;
 	}
@@ -91,16 +114,37 @@ BOOL AppWindow::RegisterWindow(HINSTANCE hInstance)
 
 /**
 */
-BOOL AppWindow::InitInstance(int nCmdShow)
+BOOL AppWindow::createWindow(int nCmdShow)
 {
+	UINT exStyle = WS_EX_APPWINDOW;
+	UINT style = WS_OVERLAPPEDWINDOW;
+
+	int left, top, width, height;
+
+	if (this->window.init.isFullScreen) {
+		left = GetSystemMetrics(SM_XVIRTUALSCREEN);
+		top = GetSystemMetrics(SM_YVIRTUALSCREEN);
+		width = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+		height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+	
+		style = WS_POPUP | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
+		exStyle = WS_EX_TOPMOST;
+	}
+	else {
+		left = 0;
+		top = 0;
+		width = this->window.init.width;
+		height = this->window.init.height;
+	}
+
 	// create the window
 	this->window.hWnd = ::CreateWindowEx(
-		WS_EX_APPWINDOW,			// extended style
+		exStyle,					// extended style
 		this->app->className,
 		this->window.init.title,
-		WS_OVERLAPPEDWINDOW,		// window style
-		0, 0,						// origin X,Y
-		640, 480,					// width,height
+		style,						// window style
+		left, top,					// origin X,Y
+		width, height,				// width,height
 		HWND_DESKTOP,				// parent
 		NULL,						// menu
 		this->app->hInstance,		// window instance
@@ -112,6 +156,10 @@ BOOL AppWindow::InitInstance(int nCmdShow)
 	// save "this" ptr for static callback access
 	::SetWindowLong( this->window.hWnd, GWL_USERDATA, (long)this );
 
+//	if (this->window.init.isFullScreen) {
+		::SetForegroundWindow( this->window.hWnd );
+//	}
+
 	// show and update window
 	::ShowWindow(this->window.hWnd, nCmdShow);
 	::UpdateWindow(this->window.hWnd);				// send WM_PAINT
@@ -121,28 +169,42 @@ BOOL AppWindow::InitInstance(int nCmdShow)
 
 /**
 */
-int AppWindow::MessagePump()
+int AppWindow::messagePump()
 {
 	MSG msg = {0};
 
-	// Main message loop:
-	while (::GetMessage(&msg, NULL, 0, 0))
-	{
-		::TranslateMessage(&msg);
-		::DispatchMessage(&msg);
-	}
+	if (!this->window.hWnd)
+		return 0;
 
-	return (int) msg.wParam;
+	while (1) {
+		// Main message loop:
+		while (!::PeekMessage(&msg, NULL,0,0, PM_NOREMOVE)) {
+			saver->idleProc();
+			Sleep(1);
+		}
+		// process message if found in queue
+		if (::GetMessage(&msg, NULL, 0, 0)) {
+			::TranslateMessage(&msg);
+			::DispatchMessage(&msg);
+		}
+		else
+			return msg.wParam;
+	}
+	return msg.wParam;
 }
 
 /** instance specific callback
 */
-LRESULT AppWindow::AppWindProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+LRESULT AppWindow::appWindProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	switch (message)
 	{
 	case WM_COMMAND:
 		break;
+	case WM_SETCURSOR:
+		if (this->window.init.isFullScreen)
+			SetCursor(NULL);		// clear cursor if full screen
+		return TRUE;
 	case WM_PAINT:
 		{
 			PAINTSTRUCT ps;
@@ -151,7 +213,7 @@ LRESULT AppWindow::AppWindProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 
 			GetClientRect(hWnd,&r);
 			hdc = BeginPaint(hWnd, &ps);
-			HBRUSH br = (HBRUSH)GetStockObject(BLACK_BRUSH);
+			HBRUSH br = (HBRUSH)GetStockObject(GRAY_BRUSH);
 			FillRect(hdc,&r,br);
 			EndPaint(hWnd, &ps);
 		}
@@ -164,15 +226,18 @@ LRESULT AppWindow::AppWindProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 */
 LRESULT CALLBACK AppWindow::staticWindProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-//	int wmId, wmEvent;
-
 	// get handle to original creating class (this) and call class custom callback
 	AppWindow *aw = (AppWindow*)::GetWindowLong( hWnd, GWL_USERDATA );
-	if (aw) aw->AppWindProc(hWnd,message,wParam,lParam);
+	if (aw) aw->appWindProc(hWnd,message,wParam,lParam);
 
 	// common message processing functions
 	switch (message)
 	{
+	case WM_KEYDOWN:
+	case WM_SYSKEYDOWN:
+	case WM_LBUTTONDOWN:
+	case WM_MBUTTONDOWN:
+	case WM_RBUTTONDOWN:
 	case WM_DESTROY:
 		::PostQuitMessage(0);
 		break;

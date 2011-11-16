@@ -18,12 +18,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\src\main_win32.cpp" />
-    <ClCompile Include="..\src\mySlideSaver.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\src\rsWin32Saver.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
+    <ClCompile Include="..\src\mySlideSaver.cpp" />
     <ClCompile Include="..\src\stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
     </ClCompile>
@@ -35,7 +30,7 @@
     <ClInclude Include="..\src\Image.h" />
     <ClInclude Include="..\src\ImageFactory.h" />
     <ClInclude Include="..\src\main_window.h" />
-    <ClInclude Include="..\src\mySlides.h" />
+    <ClInclude Include="..\src\mySlideSaver.h" />
     <ClInclude Include="..\src\Resource.h" />
     <ClInclude Include="..\src\rsTimer.h" />
     <ClInclude Include="..\src\rsWin32Saver.h" />
@@ -75,6 +70,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <TargetExt>.exe</TargetExt>
+    <OutDir>..\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
