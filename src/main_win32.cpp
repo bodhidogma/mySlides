@@ -5,10 +5,23 @@
 #include "Resource.h"
 #include "main_window.h"
 
-#define MAX_LOADSTRING 100
-
 // Global Variables:
 AppWindow myWindow;
+
+/**
+*/
+int startWindowedApp(HINSTANCE hInstance, int nCmdShow)
+{
+	// register window class
+	myWindow.RegisterWindow(hInstance);
+
+	// Perform application initialization:
+	if (!myWindow.InitInstance(nCmdShow))
+		return FALSE;
+
+	// run message pump
+	return myWindow.MessagePump();
+}
 
 /**
 */
@@ -20,15 +33,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
 
-	// register window class
-	myWindow.Register(hInstance);
-
-	// Perform application initialization:
-	if (!myWindow.InitInstance (hInstance, nCmdShow))
-		return FALSE;
-
-	// run message pump
-	return myWindow.MessagePump();
+	return startWindowedApp(hInstance, nCmdShow);
 }
 
 /**  AppWindow Class Implementation
@@ -36,19 +41,30 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 AppWindow::AppWindow()
 {
+	ZeroMemory(&window, sizeof(_Window));
+	app = NULL;
 }
 
 AppWindow::~AppWindow()
 {
+	if (app)
+		delete app;
 }
 
 /**
 */
-int AppWindow::Register(HINSTANCE hInstance)
+BOOL AppWindow::RegisterWindow(HINSTANCE hInstance)
 {
 	WNDCLASSEX wcex = {0};
-	TCHAR szWindowClass[MAX_LOADSTRING];			// the main window class name
-	LoadString(hInstance, IDC_MYSLIDES, szWindowClass, MAX_LOADSTRING);
+
+	// no associated app for this window
+	if (this->app == NULL) {
+		this->app = new Application;
+	}
+
+	this->app->hInstance = hInstance;
+	LoadString(hInstance, IDC_MYSLIDES, this->app->className, MAX_LOADSTRING);
+	LoadString(hInstance, IDS_APP_TITLE, this->window.init.title, MAX_LOADSTRING);
 
 	wcex.cbSize = sizeof(WNDCLASSEX);
 
@@ -56,40 +72,49 @@ int AppWindow::Register(HINSTANCE hInstance)
 	wcex.lpfnWndProc	= this->staticWindProc;
 	wcex.cbClsExtra		= 0;
 	wcex.cbWndExtra		= 0;
-	wcex.hInstance		= hInstance;
-	wcex.hIcon			= LoadIcon(hInstance, MAKEINTRESOURCE(ID_APP));
+	wcex.hInstance		= this->app->hInstance;
+	wcex.hIcon			= LoadIcon(this->app->hInstance, MAKEINTRESOURCE(ID_APP));
 	wcex.hCursor		= LoadCursor(NULL, IDC_ARROW);
 	wcex.hbrBackground	= (HBRUSH)(COLOR_WINDOW+1);
-	wcex.lpszClassName	= szWindowClass;
+	wcex.lpszClassName	= this->app->className;
 //	wcex.lpszMenuName	= MAKEINTRESOURCE(IDC_MYSLIDES);
 //	wcex.hIconSm		= LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
-	return RegisterClassEx(&wcex);
+	// RegisterClass is supposed to succeed
+	if (RegisterClassEx(&wcex) == 0)
+	{
+		MessageBox (HWND_DESKTOP, _T("RegisterClassEx Failed!"), _T("Error"), MB_OK | MB_ICONEXCLAMATION);
+		return FALSE;
+	}
+	return TRUE;
 }
 
 /**
 */
-BOOL AppWindow::InitInstance(HINSTANCE hInstance, int nCmdShow)
+BOOL AppWindow::InitInstance(int nCmdShow)
 {
-	HWND hWnd;
-	TCHAR szTitle[MAX_LOADSTRING];					// The title bar text
-	LoadString(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
-	TCHAR szWindowClass[MAX_LOADSTRING];			// the main window class name
-	LoadString(hInstance, IDC_MYSLIDES, szWindowClass, MAX_LOADSTRING);
+	// create the window
+	this->window.hWnd = ::CreateWindowEx(
+		WS_EX_APPWINDOW,			// extended style
+		this->app->className,
+		this->window.init.title,
+		WS_OVERLAPPEDWINDOW,		// window style
+		0, 0,						// origin X,Y
+		640, 480,					// width,height
+		HWND_DESKTOP,				// parent
+		NULL,						// menu
+		this->app->hInstance,		// window instance
+		NULL);						// WM_CREATE message WPARAM value
 
-	//   hInst = hInstance; // Store instance handle in our global variable
-
-	hWnd = ::CreateWindow(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-		CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
-
-	if (!hWnd)
+	if (!this->window.hWnd)
 		return FALSE;
 
 	// save "this" ptr for static callback access
-	::SetWindowLong( hWnd, GWL_USERDATA, (long)this );
+	::SetWindowLong( this->window.hWnd, GWL_USERDATA, (long)this );
 
-	::ShowWindow(hWnd, nCmdShow);
-	::UpdateWindow(hWnd);
+	// show and update window
+	::ShowWindow(this->window.hWnd, nCmdShow);
+	::UpdateWindow(this->window.hWnd);				// send WM_PAINT
 
 	return TRUE;
 }
@@ -98,7 +123,8 @@ BOOL AppWindow::InitInstance(HINSTANCE hInstance, int nCmdShow)
 */
 int AppWindow::MessagePump()
 {
-	MSG msg;
+	MSG msg = {0};
+
 	// Main message loop:
 	while (::GetMessage(&msg, NULL, 0, 0))
 	{
@@ -109,29 +135,6 @@ int AppWindow::MessagePump()
 	return (int) msg.wParam;
 }
 
-/** static callback for all instances of the class
-*/
-LRESULT CALLBACK AppWindow::staticWindProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
-//	int wmId, wmEvent;
-
-	// get handle to original creating class (this)
-	AppWindow *aw = (AppWindow*)::GetWindowLong( hWnd, GWL_USERDATA );
-
-	// call "this" callback
-	if (aw) aw->AppWindProc(hWnd,message,wParam,lParam);
-
-	switch (message)
-	{
-	case WM_DESTROY:
-		::PostQuitMessage(0);
-		break;
-	default:
-		return ::DefWindowProc(hWnd, message, wParam, lParam);
-	}
-	return 0;
-}
-
 /** instance specific callback
 */
 LRESULT AppWindow::AppWindProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -139,23 +142,6 @@ LRESULT AppWindow::AppWindProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 	switch (message)
 	{
 	case WM_COMMAND:
-#if 0
-		int wmId    = LOWORD(wParam);
-		int wmEvent = HIWORD(wParam);
-		// Parse the menu selections:
-		switch (wmId)
-		{
-		case IDD_ABOUTBOX:
-//			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
-			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, (DLGPROC)About);
-			break;
-//		case IDM_EXIT:
-//			DestroyWindow(hWnd);
-			break;
-		default:
-			return DefWindowProc(hWnd, message, wParam, lParam);
-		}
-#endif
 		break;
 	case WM_PAINT:
 		{
@@ -170,6 +156,28 @@ LRESULT AppWindow::AppWindProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 			EndPaint(hWnd, &ps);
 		}
 		break;
+	}
+	return 0;
+}
+
+/** static callback for all instances of the class
+*/
+LRESULT CALLBACK AppWindow::staticWindProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+//	int wmId, wmEvent;
+
+	// get handle to original creating class (this) and call class custom callback
+	AppWindow *aw = (AppWindow*)::GetWindowLong( hWnd, GWL_USERDATA );
+	if (aw) aw->AppWindProc(hWnd,message,wParam,lParam);
+
+	// common message processing functions
+	switch (message)
+	{
+	case WM_DESTROY:
+		::PostQuitMessage(0);
+		break;
+	default:
+		return ::DefWindowProc(hWnd, message, wParam, lParam);
 	}
 	return 0;
 }

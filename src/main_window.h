@@ -6,12 +6,12 @@
 
 typedef struct {									// Contains Information Vital To Applications
 	HINSTANCE		hInstance;						// Application Instance
-	TCHAR			className[100];					// Application ClassName
-} _Application;										// Application
+	TCHAR			className[MAX_LOADSTRING];		// Application ClassName
+} Application;										// Application
 
 typedef struct {									// Window Creation Info
-	_Application*		application;				// Application Structure
-	TCHAR				title[100];				// Window Title
+//	Application*		application;				// Application Structure
+	TCHAR				title[MAX_LOADSTRING];		// Window Title
 	int					width;						// Width
 	int					height;						// Height
 	int					bitsPerPixel;				// Bits Per Pixel
@@ -22,7 +22,7 @@ typedef struct {									// Contains Information Vital To A Window
 	HWND				hWnd;						// Window Handle
 	HDC					hDC;						// Device Context
 	HGLRC				hRC;						// Rendering Context
-	_WindowInit		init;						// Window Init
+	_WindowInit			init;						// Window Init
 	BOOL				isVisible;					// Window Visible?
 	DWORD				lastTickCount;				// Tick Counter
 } _Window;										// GL_Window
@@ -35,13 +35,17 @@ public:
 	AppWindow();
 	~AppWindow();
 	
-	int Register(HINSTANCE);
-	BOOL InitInstance(HINSTANCE, int);
-	static LRESULT CALLBACK staticWindProc(HWND, UINT, WPARAM, LPARAM);
-	LRESULT AppWindProc(HWND, UINT, WPARAM, LPARAM);
+	BOOL	RegisterWindow(HINSTANCE hInstance);
+	BOOL	InitInstance(int nCmdShow);
+	int		MessagePump();
+	LRESULT	AppWindProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-	int MessagePump();
 private:
+	Application *app;
+	_Window window;
+
+	// static callback w/ core functionality
+	static LRESULT CALLBACK staticWindProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 };
 
 #endif

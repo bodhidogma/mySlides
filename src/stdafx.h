@@ -52,3 +52,6 @@ using namespace std;
 
 // Additional headers
 #include "FreeImage.h"
+
+// common #defines
+#define MAX_LOADSTRING 100

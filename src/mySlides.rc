@@ -46,8 +46,8 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 STRINGTABLE
 {
 	IDS_DESCRIPTION				  "My Slides"
-    IDC_MYSLIDES                  "mySlides"
-    IDS_APP_TITLE                 "mySlides"
+    IDC_MYSLIDES                  "mySlidesApp"
+    IDS_APP_TITLE                 "mySlides Title"
 }
 
 
