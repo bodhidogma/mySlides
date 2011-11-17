@@ -50,6 +50,8 @@ public:
 	int		messagePump();
 	LRESULT	appWindProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
+	int openConfigBox(HINSTANCE inst);
+
 protected:
 	Application *app;
 	_Window window;
@@ -65,7 +67,8 @@ protected:
 
 private:
 	// static callback w/ core functionality
-	static LRESULT CALLBACK staticWindProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+	static LRESULT CALLBACK _staticWindProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+	static BOOL _staticSaverConfigDialog(HWND hDlg, UINT msg, WPARAM wpm, LPARAM lpm);
 
 	void setBestPixelFormat();
 };
