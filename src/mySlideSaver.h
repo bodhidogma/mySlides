@@ -4,16 +4,24 @@
 #ifndef _MYSLIDESAVER_H_
 #define _MYSLIDESAVER_H_
 
-class SlideSaver
+#include "main_window.h"
+
+class SlideSaver : public AppWindow
 {
 public:
 	SlideSaver();
 	~SlideSaver();
 
-	int idleProc() { return 0; }
+protected:
+	int x;
 
-//	AppWindow *appWin;
-private:
+	// abstract function implementations
+	int  idleProc();
+	void shapeWindow();
+	void initSaver();
+	void cleanUp();
+	BOOL saverConfigureDialog(HWND hDlg, UINT msg, WPARAM wpm, LPARAM lpm);
+
 };
 
 #endif

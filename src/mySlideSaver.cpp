@@ -2,16 +2,37 @@
 */
 
 #include "stdafx.h"
-//#include "main_window.h"
 #include "mySlideSaver.h"
 
 
 SlideSaver::SlideSaver()
 {
-//	this->appWin = new AppWindow();
+	x = 0;
 }
 
 SlideSaver::~SlideSaver()
 {
-//	if (this->appWin)	delete appWin;
+	x = 0;
+}
+
+int SlideSaver::idleProc()
+{
+	return 0;
+}
+
+void SlideSaver::shapeWindow()
+{
+}
+
+void SlideSaver::initSaver()
+{
+}
+
+void SlideSaver::cleanUp()
+{
+}
+
+BOOL SlideSaver::saverConfigureDialog(HWND hDlg, UINT msg, WPARAM wpm, LPARAM lpm)
+{
+	return FALSE;
 }

@@ -10,15 +10,16 @@ typedef struct {									// Contains Information Vital To Applications
 } Application;										// Application
 
 typedef struct {									// Window Creation Info
-//	Application*		application;				// Application Structure
 	TCHAR				title[MAX_LOADSTRING];		// Window Title
 	int					width;						// Width
 	int					height;						// Height
 	int					bitsPerPixel;				// Bits Per Pixel
 	BOOL				isFullScreen;				// FullScreen?
+	BOOL				isPreview;
 } _WindowInit;									// GL_WindowInit
 
 typedef struct {									// Contains Information Vital To A Window
+	HWND				hParent;
 	HWND				hWnd;						// Window Handle
 	HDC					hDC;						// Device Context
 	HGLRC				hRC;						// Rendering Context
@@ -38,21 +39,35 @@ public:
 	AppWindow();
 	~AppWindow();
 	
-	void    initFullScreen(BOOL doFS) {window.init.isFullScreen = doFS;}
-	void	initSize(int w, int h){window.init.width=w; window.init.height=h;}
+	void    setFullScreen(BOOL doFS) {window.init.isFullScreen = doFS;}
+	void	setSize(int w, int h){window.init.width=w; window.init.height=h;}
+	void	setParent(HWND hWnd) {window.hParent=hWnd; }
+
+	int     startApp(HINSTANCE hInstance, int nCmdShow);
 
 	BOOL	registerWindow(HINSTANCE hInstance);
 	BOOL	createWindow(int nCmdShow);
 	int		messagePump();
 	LRESULT	appWindProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-	SlideSaver *saver;
-private:
+protected:
 	Application *app;
 	_Window window;
 
+	void _initSaver();
+
+	// Abstract base class function declarations
+	virtual int  idleProc() =0;
+	virtual void shapeWindow() =0;
+	virtual void initSaver() =0;
+	virtual void cleanUp() =0;
+	virtual BOOL saverConfigureDialog(HWND hDlg, UINT msg, WPARAM wpm, LPARAM lpm) =0;
+
+private:
 	// static callback w/ core functionality
 	static LRESULT CALLBACK staticWindProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+
+	void setBestPixelFormat();
 };
 
 #endif

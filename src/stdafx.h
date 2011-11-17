@@ -25,6 +25,7 @@
 #include <windows.h>
 #include <mmsystem.h>
 #include <CommCtrl.h>
+#include <Shellapi.h>
 
 #pragma comment( lib, "Winmm.lib" )
 #pragma comment( lib, "ComCtl32.lib" )

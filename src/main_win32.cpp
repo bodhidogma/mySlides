@@ -3,23 +3,8 @@
 
 #include "stdafx.h"
 #include "Resource.h"
-#include "main_window.h"
 #include "mySlideSaver.h"
-
-/**
-*/
-int startApp(AppWindow *aw, HINSTANCE hInstance, int nCmdShow)
-{
-	// register window class
-	aw->registerWindow(hInstance);
-
-	// Perform application initialization:
-	if (!aw->createWindow(nCmdShow))
-		return FALSE;
-
-	// run message pump
-	return aw->messagePump();
-}
+//#include "main_window.h"
 
 /**
 */
@@ -31,20 +16,62 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
 
-	AppWindow *myAppWin = new AppWindow();
+//	AppWindow *mySaver = new AppWindow();
 	SlideSaver *mySaver = new SlideSaver();
 	int ret = 0;
+	LPWSTR *szArglist;
+	int nArgs;
+	int i;
 
-	if (myAppWin) {
-//		myAppWin->initFullScreen(TRUE);
-//		myAppWin->initSize(640,480);
-		myAppWin->saver = mySaver;
+	if (!mySaver)
+		return -1;
 
-		ret = startApp(myAppWin, hInstance, nCmdShow);	
-		delete myAppWin;
+	szArglist = CommandLineToArgvW(GetCommandLineW(), &nArgs);
+	for (i=1; szArglist && i<nArgs; i++) {
+		ret = i;
+		// win95 change password
+		if (!_tcsnicmp(_T("/a"), szArglist[i],2)) {
+			ret = -1;
+			break;
+		}
+		// saver settings dialog
+		else if (!_tcsnicmp(_T("/c"), szArglist[i],2)) {
+			// open config box
+			ret = 0;
+			break;
+		}
+		// open preview window
+		else if (!_tcsnicmp(_T("/p"), szArglist[i],2)) {
+			if ((i+1)<nArgs)
+				mySaver->setParent((HWND)_tstoi(szArglist[i+1]));
+			else 
+				ret = -1;
+			break;
+		}
+		// start saver
+		else if (!_tcsnicmp(_T("/s"), szArglist[i],2)) {
+			mySaver->setFullScreen(TRUE);
+			break;
+		}
+		// windowed saver (debugging)
+		else if (!_tcsnicmp(_T("/w"), szArglist[i],2)) {
+			mySaver->setSize(640,480);
+			break;
+		}
 	}
-	if (mySaver) delete mySaver;
+	switch (ret)
+	{
+	case -1:	// some errors
+		break;
+	case 0:		// open configure dialog
+		break;
+	default:	// open window and start msg pumps
+		ret = mySaver->startApp(hInstance, nCmdShow);
+	}
+	delete mySaver;
+	mySaver = 0;
 
+	LocalFree(szArglist);
 	return ret;
 }
 
@@ -55,7 +82,6 @@ AppWindow::AppWindow()
 {
 	ZeroMemory(&window, sizeof(_Window));
 	app = NULL;
-	saver = NULL;
 
 	window.init.width = 320;
 	window.init.height = 240;
@@ -65,6 +91,22 @@ AppWindow::~AppWindow()
 {
 	if (app) delete app;
 }
+
+/**
+*/
+int AppWindow::startApp(HINSTANCE hInstance, int nCmdShow)
+{
+	// register window class
+	registerWindow(hInstance);
+
+	// Perform application initialization:
+	if (!createWindow(nCmdShow))
+		return FALSE;
+
+	// run message pump
+	return messagePump();
+}
+
 
 /**
 */
@@ -121,7 +163,9 @@ BOOL AppWindow::createWindow(int nCmdShow)
 
 	int left, top, width, height;
 
-	if (this->window.init.isFullScreen) {
+	if (this->window.hParent) {
+	}
+	else if (this->window.init.isFullScreen) {
 		left = GetSystemMetrics(SM_XVIRTUALSCREEN);
 		top = GetSystemMetrics(SM_YVIRTUALSCREEN);
 		width = GetSystemMetrics(SM_CXVIRTUALSCREEN);
@@ -153,6 +197,8 @@ BOOL AppWindow::createWindow(int nCmdShow)
 	if (!this->window.hWnd)
 		return FALSE;
 
+	this->window.hDC = GetDC(this->window.hWnd);
+
 	// save "this" ptr for static callback access
 	::SetWindowLong( this->window.hWnd, GWL_USERDATA, (long)this );
 
@@ -179,7 +225,7 @@ int AppWindow::messagePump()
 	while (1) {
 		// Main message loop:
 		while (!::PeekMessage(&msg, NULL,0,0, PM_NOREMOVE)) {
-			saver->idleProc();
+			this->idleProc();
 			Sleep(1);
 		}
 		// process message if found in queue
@@ -245,4 +291,98 @@ LRESULT CALLBACK AppWindow::staticWindProc(HWND hWnd, UINT message, WPARAM wPara
 		return ::DefWindowProc(hWnd, message, wParam, lParam);
 	}
 	return 0;
+}
+
+/**
+*/
+void AppWindow::setBestPixelFormat()
+{
+	int moreFormats, score = 0, nPixelFormat = 1, bestPixelFormat = 0, temp;
+	PIXELFORMATDESCRIPTOR pfd;
+
+	// Try to find the best pixel format
+	moreFormats = DescribePixelFormat(this->window.hDC, nPixelFormat, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
+	while(moreFormats){
+		// Absolutely must have these 4 attributes
+		if((pfd.dwFlags & PFD_SUPPORT_OPENGL)
+			&& (pfd.dwFlags & PFD_DRAW_TO_WINDOW)
+			&& (pfd.dwFlags & PFD_DOUBLEBUFFER)
+			&& (pfd.iPixelType == PFD_TYPE_RGBA)){
+			// If this pixel format is good, see if it's the best...
+			temp = 0;
+			// color depth and z depth?
+			temp += pfd.cColorBits + 2 * pfd.cDepthBits;
+			if(pfd.cColorBits > 16)
+				temp += (16 - pfd.cColorBits) / 2;
+			// hardware accelerated?
+			if(pfd.dwFlags & PFD_GENERIC_FORMAT){
+				if(pfd.dwFlags & PFD_GENERIC_ACCELERATED)
+					temp += 1000;
+			}
+			else
+				temp += 2000;
+			// Compare score
+			if(temp > score){
+				score = temp;
+				bestPixelFormat = nPixelFormat;
+			}
+		}
+		// Try the next pixel format
+		nPixelFormat++;
+		moreFormats = DescribePixelFormat(this->window.hDC, nPixelFormat, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
+	}
+
+	// Set the pixel format for the device con_T
+	if(bestPixelFormat){
+		DescribePixelFormat(this->window.hDC, bestPixelFormat, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
+		SetPixelFormat(this->window.hDC, bestPixelFormat, &pfd);
+#if 0
+		if(pfd.dwFlags & PFD_SWAP_EXCHANGE)
+			pfd_swap_exchange = 1;
+		else
+			pfd_swap_exchange = 0;
+		if(pfd.dwFlags & PFD_SWAP_COPY)
+			pfd_swap_copy = 1;
+		else
+			pfd_swap_copy = 0;
+#endif
+	}
+	else{  // Just in case a best pixel format wasn't found
+		PIXELFORMATDESCRIPTOR defaultPfd = {
+			sizeof(PIXELFORMATDESCRIPTOR),          // Size of this structure
+			1,                                      // Version of this structure    
+			PFD_DRAW_TO_WINDOW |                    // Draw to Window (not to bitmap)
+			PFD_SUPPORT_OPENGL |					// Support OpenGL calls in window
+			PFD_DOUBLEBUFFER,                       // Double buffered
+			PFD_TYPE_RGBA,                          // RGBA Color mode
+			24,                                     // Want 24bit color 
+			0,0,0,0,0,0,                            // Not used to select mode
+			0,0,                                    // Not used to select mode
+			0,0,0,0,0,                              // Not used to select mode
+			24,                                     // Size of depth buffer
+			0,                                      // Not used to select mode
+			0,                                      // Not used to select mode
+			PFD_MAIN_PLANE,                         // Draw in main plane
+			0,                                      // Not used to select mode
+			0,0,0 };                                // Not used to select mode
+		bestPixelFormat = ChoosePixelFormat(this->window.hDC, &defaultPfd);
+		// ChoosePixelFormat is poorly documented and I don't trust it.
+		// That's the main reason for this whole function.
+		SetPixelFormat(this->window.hDC, bestPixelFormat, &defaultPfd);
+#if 0
+		if(defaultPfd.dwFlags & PFD_SWAP_EXCHANGE)
+			pfd_swap_exchange = 1;
+		else
+			pfd_swap_exchange = 0;
+		if(defaultPfd.dwFlags & PFD_SWAP_COPY)
+			pfd_swap_copy = 1;
+		else
+			pfd_swap_copy = 0;
+#endif
+	}
+}
+
+void AppWindow::_initSaver()
+{
+
 }
