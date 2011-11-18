@@ -13,6 +13,8 @@ typedef struct {									// Window Creation Info
 	TCHAR				title[MAX_LOADSTRING];		// Window Title
 	int					width;						// Width
 	int					height;						// Height
+	int					screenW;
+	int					screenH;
 	int					bitsPerPixel;				// Bits Per Pixel
 	BOOL				isFullScreen;				// FullScreen?
 	BOOL				isPreview;
@@ -55,21 +57,19 @@ protected:
 	Application *app;
 	_Window window;
 
-	void _initSaver();
-
 	// Abstract base class function declarations
-	virtual int  idleProc() =0;
+	virtual void idleProc() =0;
 	virtual void shapeWindow() =0;
 	virtual void initSaver() =0;
 	virtual void cleanUp() =0;
 	virtual BOOL saverConfigureDialog(HWND hDlg, UINT msg, WPARAM wpm, LPARAM lpm) =0;
 
+	void setBestPixelFormat();
+
 private:
 	// static callback w/ core functionality
 	static LRESULT CALLBACK _staticWindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 	static INT_PTR CALLBACK _staticDialogProc(HWND hDlg, UINT msg, WPARAM wpm, LPARAM lpm);
-
-	void setBestPixelFormat();
 };
 
 #endif

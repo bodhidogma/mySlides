@@ -6,6 +6,8 @@
 #include "mySlideSaver.h"
 //#include "main_window.h"
 
+#include <fstream>
+
 BOOL checkPassword(HWND hwnd);
 void changePassword(HWND hwnd);
 
@@ -18,6 +20,10 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 {
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
+#if 1
+	std::ofstream outfile;
+	outfile.open("c:\\tmp\\cmdline"); outfile<<"cmd="<< GetCommandLineA() <<std::endl; outfile.close();
+#endif
 
 	//AppWindow *mySaver = {0};
 	SlideSaver *mySaver = {0};
@@ -30,40 +36,45 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 	if (!mySaver)
 		return -1;
-
+#if 1
 	szArglist = CommandLineToArgvW(GetCommandLineW(), &nArgs);
 	for (i=1; szArglist && i<nArgs; i++) {
 		ret = i;
 		// win95 change password
-		if (!_tcsnicmp(_T("/a"), szArglist[i],2)) {
+		if (!wcsncmp(L"/a", szArglist[i],2)) {
 			ret = -1;
 			break;
 		}
 		// saver settings dialog
-		else if (!_tcsnicmp(_T("/c"), szArglist[i],2)) {
-			mySaver->setParent(GetForegroundWindow());
+		else if (!wcsncmp(L"/c", szArglist[i],2)) {
+			HWND h = GetForegroundWindow();
+			mySaver->setParent(h);
 			ret = 0;
 			break;
 		}
 		// open preview window
-		else if (!_tcsnicmp(_T("/p"), szArglist[i],2)) {
-			if ((i+1)<nArgs)
-				mySaver->setParent((HWND)_tstoi(szArglist[i+1]));
+		else if (!wcsncmp(L"/p", szArglist[i],2)) {
+			if ((i+1)<nArgs) {
+				int h = _wtoi(szArglist[i+1]);
+				mySaver->setParent((HWND)h);
+			}
 			else 
 				ret = -1;
 			break;
 		}
 		// start saver
-		else if (!_tcsnicmp(_T("/s"), szArglist[i],2)) {
+		else if (!wcsncmp(L"/s", szArglist[i],2)) {
 			mySaver->setFullScreen(TRUE);
 			break;
 		}
 		// windowed saver (debugging)
-		else if (!_tcsnicmp(_T("/w"), szArglist[i],2)) {
+		else if (!wcsncmp(L"/w", szArglist[i],2)) {
 			mySaver->setSize(640,480);
 			break;
 		}
 	}
+	LocalFree(szArglist);
+
 	switch (ret)
 	{
 	case -1:	// some errors
@@ -74,10 +85,10 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	default:	// open window and start msg pumps
 		ret = mySaver->startApp(hInstance, nCmdShow);
 	}
+#endif
 	delete mySaver;
 	mySaver = 0;
 
-	LocalFree(szArglist);
 	return ret;
 }
 
@@ -88,11 +99,18 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 AppWindow::AppWindow()
 {
-	ZeroMemory(&window, sizeof(_Window));
+	memset(&window,0,sizeof(_Window));
 	app = NULL;
 
 	window.init.width = 320;
 	window.init.height = 240;
+#if 0
+	window.init.screenW = GetSystemMetrics(SM_CXVIRTUALSCREEN)-GetSystemMetrics(SM_XVIRTUALSCREEN);
+	window.init.screenH = GetSystemMetrics(SM_CYVIRTUALSCREEN)-GetSystemMetrics(SM_YVIRTUALSCREEN);
+#else
+	window.init.screenW = GetSystemMetrics(SM_CXSCREEN);
+	window.init.screenH = GetSystemMetrics(SM_CYSCREEN);
+#endif
 }
 
 AppWindow::~AppWindow()
@@ -119,12 +137,13 @@ int AppWindow::startApp(HINSTANCE hInstance, int nCmdShow)
 */
 int AppWindow::openConfigBox(HINSTANCE inst)
 {
-	return DialogBoxParam(inst,
+	DialogBoxParam(inst,
 		MAKEINTRESOURCE(DLG_SCRNSAVECONFIGURE),
 		this->window.hParent,
-		this->_staticDialogProc,
+		(DLGPROC)this->_staticDialogProc,
 		(LPARAM)this
 		);
+	return 0;
 }
 
 /**
@@ -167,7 +186,7 @@ BOOL AppWindow::registerWindow(HINSTANCE hInstance)
 
 	// RegisterClass is supposed to succeed
 	if (RegisterClassEx(&wcex) == 0) {
-		MessageBox (HWND_DESKTOP, _T("RegisterClassEx Failed!"), _T("Error"), MB_OK | MB_ICONEXCLAMATION);
+		MessageBoxW(HWND_DESKTOP, L"RegisterClassEx Failed!", L"Error", MB_OK | MB_ICONEXCLAMATION);
 		return FALSE;
 	}
 	return TRUE;
@@ -181,21 +200,34 @@ BOOL AppWindow::createWindow(int nCmdShow)
 	UINT style = WS_OVERLAPPEDWINDOW;
 
 	int left, top, width, height;
+	left = top = width = height = 0;
 
 	if (this->window.hParent) {
+		RECT pRect;
+		GetClientRect(this->window.hParent, &pRect);
+		width = pRect.right;
+		height = pRect.bottom;
+		
+		style = WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN;
+		exStyle = 0;
+
+		// set different name for init.title
 	}
 	else if (this->window.init.isFullScreen) {
+#if 0
 		left = GetSystemMetrics(SM_XVIRTUALSCREEN);
 		top = GetSystemMetrics(SM_YVIRTUALSCREEN);
 		width = GetSystemMetrics(SM_CXVIRTUALSCREEN);
 		height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+#else
+		width = GetSystemMetrics(SM_CXSCREEN);
+		height = GetSystemMetrics(SM_CYSCREEN);
+#endif
 	
 		style = WS_POPUP | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
 		exStyle = WS_EX_TOPMOST;
 	}
 	else {
-		left = 0;
-		top = 0;
 		width = this->window.init.width;
 		height = this->window.init.height;
 	}
@@ -216,8 +248,6 @@ BOOL AppWindow::createWindow(int nCmdShow)
 
 	if (!this->window.hWnd)
 		return FALSE;
-
-	this->window.hDC = GetDC(this->window.hWnd);
 
 //	if (this->window.init.isFullScreen) {
 		::SetForegroundWindow( this->window.hWnd );
@@ -262,12 +292,24 @@ LRESULT AppWindow::appWindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 {
 	switch (message)
 	{
-	case WM_COMMAND:
+	case WM_CREATE:
+		this->window.hWnd = hWnd;
+		this->window.hDC = GetDC(hWnd);
+		this->initSaver();
+		break;
+	case WM_DESTROY:
+		this->cleanUp();
+		break;
+	case WM_SIZE:
+		this->shapeWindow();
+		break;
+	case WM_KEYDOWN:
 		break;
 	case WM_SETCURSOR:
 		if (this->window.init.isFullScreen)
 			SetCursor(NULL);		// clear cursor if full screen
-		return TRUE;
+		break;
+#if 0
 	case WM_PAINT:
 		{
 			PAINTSTRUCT ps;
@@ -281,9 +323,9 @@ LRESULT AppWindow::appWindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 			EndPaint(hWnd, &ps);
 		}
 		break;
+#endif
 	}
-	return 0;
-//	return ::DefWindowProc(hWnd, message, wParam, lParam);
+	return ::DefWindowProc(hWnd, message, wParam, lParam);
 }
 
 /** static callback for all instances of the class
@@ -291,18 +333,16 @@ LRESULT AppWindow::appWindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 LRESULT CALLBACK AppWindow::_staticWindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	// get handle to original creating class (this) and call class custom callback
-	AppWindow *aw = (AppWindow*)::GetWindowLong( hWnd, GWLP_USERDATA );
-	if (!aw) {
-		LPCREATESTRUCT cs = (LPCREATESTRUCT(lParam));
-		if (message == WM_NCCREATE) {
-			aw = (AppWindow*)((LPCREATESTRUCT(lParam))->lpCreateParams);
-			::SetWindowLongPtr(hWnd, GWLP_USERDATA, (long)(aw));
-		}
-		else
-			return 0;
-	}
-	// common message processing functions
+	AppWindow *aw = (AppWindow*)::GetWindowLong( hWnd, GWL_USERDATA );
+	// common message processing
 	switch (message) {
+	case WM_NCCREATE:
+		if (!aw) {
+			aw = (AppWindow*)((LPCREATESTRUCT)lParam)->lpCreateParams;
+//			SetWindowLongPtr(hWnd, GWL_USERDATA, (long)(aw));
+			SetWindowLong(hWnd, GWL_USERDATA, (long)(aw));
+		}
+		break;
 	case WM_KEYDOWN:
 	case WM_SYSKEYDOWN:
 	case WM_LBUTTONDOWN:
@@ -312,20 +352,23 @@ LRESULT CALLBACK AppWindow::_staticWindowProc(HWND hWnd, UINT message, WPARAM wP
 		::PostQuitMessage(0);
 		break;
 	}
-	aw->appWindowProc(hWnd,message,wParam,lParam);
-	return ::DefWindowProc(hWnd, message, wParam, lParam);
-//	return 	aw->appWindowProc(hWnd,message,wParam,lParam);
+	if (aw)
+		return aw->appWindowProc(hWnd,message,wParam,lParam);
+	else
+		return ::DefWindowProc(hWnd, message, wParam, lParam);
 }
 
 INT_PTR CALLBACK AppWindow::_staticDialogProc(HWND hDlg, UINT msg, WPARAM wpm, LPARAM lpm)
 {
 	// get handle to original creating class (this) and call class custom callback
-	AppWindow *aw = (AppWindow*)::GetWindowLong( hDlg, GWLP_USERDATA );
+	AppWindow *aw = (AppWindow*)::GetWindowLong( hDlg, GWL_USERDATA );
+	// common message processing
 	switch(msg) {
 	case WM_INITDIALOG:
 		if (!aw) {
 			aw = (AppWindow*)lpm;
-			::SetWindowLongPtr(hDlg, GWLP_USERDATA, lpm);
+//			SetWindowLongPtr(hDlg, GWL_USERDATA, lpm);
+			SetWindowLong(hDlg, GWL_USERDATA, lpm);
 		}
 		InitCommonControls();
 		return TRUE;
@@ -346,7 +389,6 @@ INT_PTR CALLBACK AppWindow::_staticDialogProc(HWND hDlg, UINT msg, WPARAM wpm, L
 	else
 		return FALSE;
 }
-
 
 /**
 */
@@ -435,9 +477,4 @@ void AppWindow::setBestPixelFormat()
 			pfd_swap_copy = 0;
 #endif
 	}
-}
-
-void AppWindow::_initSaver()
-{
-
 }

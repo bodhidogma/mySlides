@@ -6,6 +6,15 @@
 
 #include "main_window.h"
 
+struct _State {
+	BOOL drawOK;
+	float frameTime;
+	float totalTime;
+	float aspectRatio;
+	//
+	float r;
+};
+
 class SlideSaver : public AppWindow
 {
 public:
@@ -15,15 +24,17 @@ public:
 //	BOOL saverConfigureDialog(HWND hDlg, UINT msg, WPARAM wpm, LPARAM lpm);
 
 protected:
-	int x;
+	_State state;
 
 	// abstract function implementations
-	int  idleProc();
+	void idleProc();
 	void shapeWindow();
 	void initSaver();
 	void cleanUp();
 	BOOL saverConfigureDialog(HWND hDlg, UINT msg, WPARAM wpm, LPARAM lpm);
 
+private:
+	void draw();
 };
 
 #endif
