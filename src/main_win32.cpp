@@ -33,6 +33,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	LPWSTR *szArglist;
 	int nArgs;
 	int i;
+	HWND hParent = GetForegroundWindow();
 
 	if (!mySaver)
 		return -1;
@@ -41,29 +42,28 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	for (i=1; szArglist && i<nArgs; i++) {
 		ret = i;
 		// win95 change password
-		if (!wcsncmp(L"/a", szArglist[i],2)) {
+		if (!_wcsnicmp(L"/a", szArglist[i],2)) {
 			ret = -1;
 			break;
 		}
 		// saver settings dialog
-		else if (!wcsncmp(L"/c", szArglist[i],2)) {
-			HWND h = GetForegroundWindow();
-			mySaver->setParent(h);
+		else if (!_wcsnicmp(L"/c", szArglist[i],2)) {
+			mySaver->setParent(hParent);
 			ret = 0;
 			break;
 		}
 		// open preview window
-		else if (!wcsncmp(L"/p", szArglist[i],2)) {
+		else if (!_wcsnicmp(L"/p", szArglist[i],2)) {
 			if ((i+1)<nArgs) {
-				int h = _wtoi(szArglist[i+1]);
-				mySaver->setParent((HWND)h);
+				hParent = (HWND)_wtoi(szArglist[i+1]);
+				mySaver->setParent(hParent);
 			}
 			else 
 				ret = -1;
 			break;
 		}
 		// start saver
-		else if (!wcsncmp(L"/s", szArglist[i],2)) {
+		else if (!_wcsnicmp(L"/s", szArglist[i],2)) {
 			mySaver->setFullScreen(TRUE);
 			break;
 		}
@@ -80,7 +80,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	case -1:	// some errors
 		break;
 	case 0:		// open configure dialog
-		ret = mySaver->openConfigBox(hInstance);
+		ret = mySaver->openConfigBox(hInstance, hParent);
 		break;
 	default:	// open window and start msg pumps
 		ret = mySaver->startApp(hInstance, nCmdShow);
@@ -104,13 +104,8 @@ AppWindow::AppWindow()
 
 	window.init.width = 320;
 	window.init.height = 240;
-#if 0
 	window.init.screenW = GetSystemMetrics(SM_CXVIRTUALSCREEN)-GetSystemMetrics(SM_XVIRTUALSCREEN);
 	window.init.screenH = GetSystemMetrics(SM_CYVIRTUALSCREEN)-GetSystemMetrics(SM_YVIRTUALSCREEN);
-#else
-	window.init.screenW = GetSystemMetrics(SM_CXSCREEN);
-	window.init.screenH = GetSystemMetrics(SM_CYSCREEN);
-#endif
 }
 
 AppWindow::~AppWindow()
@@ -135,11 +130,11 @@ int AppWindow::startApp(HINSTANCE hInstance, int nCmdShow)
 
 /**
 */
-int AppWindow::openConfigBox(HINSTANCE inst)
+int AppWindow::openConfigBox(HINSTANCE inst, HWND hParent)
 {
 	DialogBoxParam(inst,
 		MAKEINTRESOURCE(DLG_SCRNSAVECONFIGURE),
-		this->window.hParent,
+		hParent,
 		(DLGPROC)this->_staticDialogProc,
 		(LPARAM)this
 		);
@@ -184,6 +179,13 @@ BOOL AppWindow::registerWindow(HINSTANCE hInstance)
 	wcex.lpszMenuName	= NULL;
 //	wcex.hIconSm		= LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
+	// look for another app instance and switch to it
+	HWND hOther = FindWindow(this->app->className, this->window.init.title);
+	if (hOther && IsWindow(hOther)) {
+		SetForegroundWindow(hOther);
+		return FALSE;
+	}
+
 	// RegisterClass is supposed to succeed
 	if (RegisterClassEx(&wcex) == 0) {
 		MessageBoxW(HWND_DESKTOP, L"RegisterClassEx Failed!", L"Error", MB_OK | MB_ICONEXCLAMATION);
@@ -202,6 +204,11 @@ BOOL AppWindow::createWindow(int nCmdShow)
 	int left, top, width, height;
 	left = top = width = height = 0;
 
+	// if parent set, make sure not trying to do full screen
+	if (this->window.hParent && !IsWindow(this->window.hParent))
+		return FALSE;
+
+	// preview
 	if (this->window.hParent) {
 		RECT pRect;
 		GetClientRect(this->window.hParent, &pRect);
@@ -210,23 +217,22 @@ BOOL AppWindow::createWindow(int nCmdShow)
 		
 		style = WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN;
 		exStyle = 0;
+		this->window.init.isPreview = TRUE;
 
 		// set different name for init.title
+		LoadString(this->app->hInstance, IDS_APP_TITLE_PVW, this->window.init.title, MAX_LOADSTRING);
 	}
+	// full screen
 	else if (this->window.init.isFullScreen) {
-#if 0
 		left = GetSystemMetrics(SM_XVIRTUALSCREEN);
 		top = GetSystemMetrics(SM_YVIRTUALSCREEN);
 		width = GetSystemMetrics(SM_CXVIRTUALSCREEN);
 		height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
-#else
-		width = GetSystemMetrics(SM_CXSCREEN);
-		height = GetSystemMetrics(SM_CYSCREEN);
-#endif
 	
 		style = WS_POPUP | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
 		exStyle = WS_EX_TOPMOST;
 	}
+	// windowed
 	else {
 		width = this->window.init.width;
 		height = this->window.init.height;
@@ -250,6 +256,7 @@ BOOL AppWindow::createWindow(int nCmdShow)
 		return FALSE;
 
 //	if (this->window.init.isFullScreen) {
+	if (!this->window.init.isPreview)
 		::SetForegroundWindow( this->window.hWnd );
 //	}
 
@@ -306,7 +313,7 @@ LRESULT AppWindow::appWindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 	case WM_KEYDOWN:
 		break;
 	case WM_SETCURSOR:
-		if (this->window.init.isFullScreen)
+		if (!window.init.isPreview && window.init.isFullScreen)
 			SetCursor(NULL);		// clear cursor if full screen
 		break;
 #if 0
@@ -333,14 +340,13 @@ LRESULT AppWindow::appWindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 LRESULT CALLBACK AppWindow::_staticWindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	// get handle to original creating class (this) and call class custom callback
-	AppWindow *aw = (AppWindow*)::GetWindowLong( hWnd, GWL_USERDATA );
+	AppWindow *aw = (AppWindow*)::GetWindowLong( hWnd, GWLP_USERDATA );
 	// common message processing
 	switch (message) {
 	case WM_NCCREATE:
 		if (!aw) {
 			aw = (AppWindow*)((LPCREATESTRUCT)lParam)->lpCreateParams;
-//			SetWindowLongPtr(hWnd, GWL_USERDATA, (long)(aw));
-			SetWindowLong(hWnd, GWL_USERDATA, (long)(aw));
+			SetWindowLong(hWnd, GWLP_USERDATA, (long)(aw));
 		}
 		break;
 	case WM_KEYDOWN:
@@ -361,14 +367,13 @@ LRESULT CALLBACK AppWindow::_staticWindowProc(HWND hWnd, UINT message, WPARAM wP
 INT_PTR CALLBACK AppWindow::_staticDialogProc(HWND hDlg, UINT msg, WPARAM wpm, LPARAM lpm)
 {
 	// get handle to original creating class (this) and call class custom callback
-	AppWindow *aw = (AppWindow*)::GetWindowLong( hDlg, GWL_USERDATA );
+	AppWindow *aw = (AppWindow*)::GetWindowLong( hDlg, GWLP_USERDATA );
 	// common message processing
 	switch(msg) {
 	case WM_INITDIALOG:
 		if (!aw) {
 			aw = (AppWindow*)lpm;
-//			SetWindowLongPtr(hDlg, GWL_USERDATA, lpm);
-			SetWindowLong(hDlg, GWL_USERDATA, lpm);
+			SetWindowLongPtr(hDlg, GWLP_USERDATA, lpm);
 		}
 		InitCommonControls();
 		return TRUE;

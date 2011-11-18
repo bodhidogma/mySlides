@@ -7,5 +7,6 @@
 #define IDI_MYSLIDES                            104
 #define IDC_MYSLIDES                            40000
 #define IDS_APP_TITLE                           40001
+#define IDS_APP_TITLE_PVW						40002
 #define DLG_SCRNSAVECONFIGURE					7001
 #define ID_APP									7002

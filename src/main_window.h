@@ -51,7 +51,7 @@ public:
 	BOOL	createWindow(int nCmdShow);
 	int		messagePump();
 	LRESULT	appWindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-	int		openConfigBox(HINSTANCE inst);
+	int		openConfigBox(HINSTANCE inst, HWND hParent);
 
 protected:
 	Application *app;
