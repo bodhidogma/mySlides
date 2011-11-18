@@ -12,6 +12,8 @@ public:
 	SlideSaver();
 	~SlideSaver();
 
+//	BOOL saverConfigureDialog(HWND hDlg, UINT msg, WPARAM wpm, LPARAM lpm);
+
 protected:
 	int x;
 

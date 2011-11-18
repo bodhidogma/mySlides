@@ -34,5 +34,19 @@ void SlideSaver::cleanUp()
 
 BOOL SlideSaver::saverConfigureDialog(HWND hDlg, UINT msg, WPARAM wpm, LPARAM lpm)
 {
-	return FALSE;
+   switch(msg){
+//    case WM_INITDIALOG:
+//        InitCommonControls();
+//        return TRUE;
+    case WM_COMMAND:
+        switch(LOWORD(wpm)){
+        case IDOK:
+            // Fall through
+        case IDCANCEL:
+            EndDialog(hDlg, LOWORD(wpm));
+            break;
+		}
+        return TRUE;
+    }
+    return FALSE;
 }

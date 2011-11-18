@@ -8,9 +8,6 @@
 
 BOOL checkPassword(HWND hwnd);
 void changePassword(HWND hwnd);
-static int openConfigBox(HWND parent);
-
-BOOL screenSaverConfigureDialog(HWND hDlg, UINT msg, WPARAM wpm, LPARAM lpm);
 
 /**
 */
@@ -22,8 +19,10 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
 
-//	AppWindow *mySaver = new AppWindow();
-	SlideSaver *mySaver = new SlideSaver();
+	//AppWindow *mySaver = {0};
+	SlideSaver *mySaver = {0};
+
+	mySaver = new SlideSaver();
 	int ret = 0;
 	LPWSTR *szArglist;
 	int nArgs;
@@ -82,37 +81,6 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	return ret;
 }
 
-BOOL screenSaverConfigureDialog(HWND hDlg, UINT msg, WPARAM wpm, LPARAM lpm)
-{
-   switch(msg){
-    case WM_INITDIALOG:
-        InitCommonControls();
-        return TRUE;
-    case WM_COMMAND:
-        switch(LOWORD(wpm)){
-        case IDOK:
-            // Fall through
-        case IDCANCEL:
-            EndDialog(hDlg, LOWORD(wpm));
-            break;
-		}
-        return TRUE;
-    }
-    return FALSE;
-}
-
-int AppWindow::openConfigBox(HINSTANCE inst)
-{
-		// save "this" ptr for static callback access
-//	::SetWindowLong( this->window.hWnd, GWL_USERDATA, (long)this );
-
-	return DialogBox(inst,
-		MAKEINTRESOURCE(DLG_SCRNSAVECONFIGURE),
-		this->window.hParent,
-		(DLGPROC)screenSaverConfigureDialog
-		);
-}
-
 // --------------------------------------------------------------
 
 /**  AppWindow Class Implementation
@@ -147,6 +115,17 @@ int AppWindow::startApp(HINSTANCE hInstance, int nCmdShow)
 	return messagePump();
 }
 
+/**
+*/
+int AppWindow::openConfigBox(HINSTANCE inst)
+{
+	return DialogBoxParam(inst,
+		MAKEINTRESOURCE(DLG_SCRNSAVECONFIGURE),
+		this->window.hParent,
+		this->_staticDialogProc,
+		(LPARAM)this
+		);
+}
 
 /**
 */
@@ -173,7 +152,7 @@ BOOL AppWindow::registerWindow(HINSTANCE hInstance)
 	wcex.cbSize = sizeof(WNDCLASSEX);
 
 	wcex.style			= CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
-	wcex.lpfnWndProc	= this->_staticWindProc;
+	wcex.lpfnWndProc	= this->_staticWindowProc;
 	wcex.cbClsExtra		= 0;
 	wcex.cbWndExtra		= 0;
 	wcex.hInstance		= this->app->hInstance;
@@ -232,15 +211,13 @@ BOOL AppWindow::createWindow(int nCmdShow)
 		HWND_DESKTOP,				// parent
 		NULL,						// menu
 		this->app->hInstance,		// window instance
-		NULL);						// WM_CREATE message WPARAM value
+		(LPVOID)this				// push (this) to be associated with the window
+		);
 
 	if (!this->window.hWnd)
 		return FALSE;
 
 	this->window.hDC = GetDC(this->window.hWnd);
-
-	// save "this" ptr for static callback access
-	::SetWindowLong( this->window.hWnd, GWL_USERDATA, (long)this );
 
 //	if (this->window.init.isFullScreen) {
 		::SetForegroundWindow( this->window.hWnd );
@@ -281,7 +258,7 @@ int AppWindow::messagePump()
 
 /** instance specific callback
 */
-LRESULT AppWindow::appWindProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+LRESULT AppWindow::appWindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	switch (message)
 	{
@@ -306,19 +283,26 @@ LRESULT AppWindow::appWindProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 		break;
 	}
 	return 0;
+//	return ::DefWindowProc(hWnd, message, wParam, lParam);
 }
 
 /** static callback for all instances of the class
 */
-LRESULT CALLBACK AppWindow::_staticWindProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK AppWindow::_staticWindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	// get handle to original creating class (this) and call class custom callback
-	AppWindow *aw = (AppWindow*)::GetWindowLong( hWnd, GWL_USERDATA );
-	if (aw) aw->appWindProc(hWnd,message,wParam,lParam);
-
+	AppWindow *aw = (AppWindow*)::GetWindowLong( hWnd, GWLP_USERDATA );
+	if (!aw) {
+		LPCREATESTRUCT cs = (LPCREATESTRUCT(lParam));
+		if (message == WM_NCCREATE) {
+			aw = (AppWindow*)((LPCREATESTRUCT(lParam))->lpCreateParams);
+			::SetWindowLongPtr(hWnd, GWLP_USERDATA, (long)(aw));
+		}
+		else
+			return 0;
+	}
 	// common message processing functions
-	switch (message)
-	{
+	switch (message) {
 	case WM_KEYDOWN:
 	case WM_SYSKEYDOWN:
 	case WM_LBUTTONDOWN:
@@ -327,19 +311,40 @@ LRESULT CALLBACK AppWindow::_staticWindProc(HWND hWnd, UINT message, WPARAM wPar
 	case WM_DESTROY:
 		::PostQuitMessage(0);
 		break;
-	default:
-		return ::DefWindowProc(hWnd, message, wParam, lParam);
 	}
-	return FALSE;
+	aw->appWindowProc(hWnd,message,wParam,lParam);
+	return ::DefWindowProc(hWnd, message, wParam, lParam);
+//	return 	aw->appWindowProc(hWnd,message,wParam,lParam);
 }
 
-BOOL AppWindow::_staticSaverConfigDialog(HWND hDlg, UINT msg, WPARAM wpm, LPARAM lpm)
+INT_PTR CALLBACK AppWindow::_staticDialogProc(HWND hDlg, UINT msg, WPARAM wpm, LPARAM lpm)
 {
 	// get handle to original creating class (this) and call class custom callback
-//	AppWindow *aw = (AppWindow*)::GetWindowLong( hDlg, GWL_USERDATA );
-//	if (aw)	return aw->saverConfigureDialog(hDlg,msg,wpm,lpm);
-
-	return FALSE;
+	AppWindow *aw = (AppWindow*)::GetWindowLong( hDlg, GWLP_USERDATA );
+	switch(msg) {
+	case WM_INITDIALOG:
+		if (!aw) {
+			aw = (AppWindow*)lpm;
+			::SetWindowLongPtr(hDlg, GWLP_USERDATA, lpm);
+		}
+		InitCommonControls();
+		return TRUE;
+#if 0
+	case WM_COMMAND:
+        switch(LOWORD(wpm)){
+        case IDOK:
+            // Fall through
+        case IDCANCEL:
+            EndDialog(hDlg, LOWORD(wpm));
+            break;
+		}
+        return TRUE;
+#endif
+	}
+	if (aw)
+		return aw->saverConfigureDialog(hDlg, msg, wpm, lpm);
+	else
+		return FALSE;
 }
 
 

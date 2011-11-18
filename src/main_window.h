@@ -48,9 +48,8 @@ public:
 	BOOL	registerWindow(HINSTANCE hInstance);
 	BOOL	createWindow(int nCmdShow);
 	int		messagePump();
-	LRESULT	appWindProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-
-	int openConfigBox(HINSTANCE inst);
+	LRESULT	appWindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+	int		openConfigBox(HINSTANCE inst);
 
 protected:
 	Application *app;
@@ -67,8 +66,8 @@ protected:
 
 private:
 	// static callback w/ core functionality
-	static LRESULT CALLBACK _staticWindProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-	static BOOL _staticSaverConfigDialog(HWND hDlg, UINT msg, WPARAM wpm, LPARAM lpm);
+	static LRESULT CALLBACK _staticWindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+	static INT_PTR CALLBACK _staticDialogProc(HWND hDlg, UINT msg, WPARAM wpm, LPARAM lpm);
 
 	void setBestPixelFormat();
 };
