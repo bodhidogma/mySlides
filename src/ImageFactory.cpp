@@ -10,7 +10,7 @@
 /**
 */
 ImageFactory::ImageFactory(TCHAR *basePath,
-	int theMaxWidth, int theMaxHeight, int theWinWidth, int theWinHeight)
+	int theMaxWidth, int theMaxHeight, int theWinWidth, int theWinHeight, int limit)
 {
 	searchBase = basePath;
 	currentName = 0;
@@ -25,10 +25,8 @@ ImageFactory::ImageFactory(TCHAR *basePath,
 	winHeight = theWinHeight;
 
 	slideNames.resize(0);
-	loadSlides(searchBase);
-
-	srand( (int)time(NULL) );
-	random_shuffle( slideNames.begin(), slideNames.end() );
+	int cnt = loadSlides(searchBase,limit);
+	currentName = slideNames.size();
 
 	// pick next slide
 	this->nextSlide(1);
@@ -56,8 +54,7 @@ float ImageFactory::elapsedCheck(float sElapse, int nextSeconds)
 {
 	this->sElapsed += sElapse;
 
-	if (this->sElapsed >= (float)nextSeconds)
-	{
+	if (this->sElapsed >= (float)nextSeconds) {
 		nextSlide(1);
 	}
 	return this->sElapsed;
@@ -97,8 +94,9 @@ void ImageFactory::nextSlide(int doFadeOut)
 */
 int ImageFactory::drawSlide(float FPS)
 {
-	if (oldSlide && glIsEnabled(GL_BLEND))
+	if (oldSlide && glIsEnabled(GL_BLEND)) {
 		oldSlide->Draw(winWidth, winHeight, FPS);
+	}
 
 	if (theSlide) {
 		theSlide->Draw(winWidth, winHeight, FPS);
@@ -109,8 +107,13 @@ int ImageFactory::drawSlide(float FPS)
 
 /**
 */
-void ImageFactory::loadSlides(tstring basePath)
+int ImageFactory::loadSlides(tstring basePath, int limit)
 {
+	int cnt = 0;
+	int newLimit = 0;
+
+	if (limit < 0) return 0;
+
 	if ( basePath.end()[ -1 ] != '/' )
 		basePath += '/';
 	WIN32_FIND_DATA fd;
@@ -118,12 +121,20 @@ void ImageFactory::loadSlides(tstring basePath)
 	if ( h != INVALID_HANDLE_VALUE ) {
 		bool done = false;
 		while ( !done ) {
-			if ( ( fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) == 0 )
+			if ( ( fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) == 0 ){
 				slideNames.push_back( basePath + fd.cFileName );
-			done = !FindNextFile( h, &fd );
+				cnt++;
+			}
+			if (limit && cnt == limit)
+				done = TRUE;
+			else 
+				done = !FindNextFile( h, &fd );
 		}
 		FindClose( h );
 	}
+	if (cnt == limit)
+		return cnt;
+
 	h = FindFirstFile( ( basePath + _T("*") ).c_str(), &fd );
 	if ( h != INVALID_HANDLE_VALUE ) {
 		bool done = false;
@@ -132,10 +143,17 @@ void ImageFactory::loadSlides(tstring basePath)
 			if ( name != _T(".") && name != _T("..") )
 			{
 				if ( fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY )
-					loadSlides( basePath + fd.cFileName);
+				{
+					if (limit) newLimit = limit-cnt;
+					cnt += loadSlides( basePath + fd.cFileName, newLimit);
+				}
 			}
-			done = !FindNextFile( h, &fd );
+			if (limit && cnt == limit)
+				done = TRUE;
+			else
+				done = !FindNextFile( h, &fd );
 		}
 		FindClose( h );
 	}
+	return cnt;
 }

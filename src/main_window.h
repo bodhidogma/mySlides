@@ -43,20 +43,20 @@ public:
 	AppWindow();
 	~AppWindow();
 
-	void	setFPSLimit(float FPS) {window.timeStep = (FPS ? 1.0f/FPS: 0.0f);}
-	float   getFPSLimit(){ return 1.0f/window.timeStep; };
+	inline void  setFPSLimit(float FPS) {window.timeStep = (FPS ? 1.0f/FPS: 0.0f);}
+	inline float getFPSLimit(){ return 1.0f/window.timeStep; };
 	
-	void    setFullScreen(BOOL doFS) {window.init.isFullScreen = doFS;}
-	void	setSize(int w, int h){window.init.width=w; window.init.height=h;}
-	void	setParent(HWND hWnd) {window.hParent=hWnd; }
+	inline void  setFullScreen(BOOL doFS) {window.init.isFullScreen = doFS;}
+	inline void  setSize(int w, int h){window.init.width=w; window.init.height=h;}
+	inline void  setParent(HWND hWnd) {window.hParent=hWnd; }
 
-	int     startApp(HINSTANCE hInstance, int nCmdShow);
+	int     startApp(HWND hParent, HINSTANCE hInstance, int nCmdShow);
 
 	BOOL	registerWindow(HINSTANCE hInstance);
-	BOOL	createWindow(int nCmdShow);
+	BOOL	createWindow(HWND hParent, HINSTANCE hInstance, int nCmdShow);
 	int		messagePump();
 	LRESULT	appWindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-	int		openConfigBox(HINSTANCE inst, HWND hParent);
+	int		openConfigBox(HWND hParent, HINSTANCE inst);
 
 protected:
 	Application *app;

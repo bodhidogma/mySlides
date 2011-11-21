@@ -16,6 +16,7 @@ struct _State {
 	//
 	float r;
 	rsTimer timer;
+	int slideDuration;
 };
 
 class SlideSaver : public AppWindow
@@ -34,6 +35,11 @@ protected:
 	void shapeWindow();
 	void initSaver();
 	void cleanUp();
+
+	void readRegistry();
+	void writeRegistry();
+	void setDefaults();
+	void initControls(HWND hDlg);
 	BOOL saverConfigureDialog(HWND hDlg, UINT msg, WPARAM wpm, LPARAM lpm);
 
 private:

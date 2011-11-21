@@ -82,10 +82,10 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	case -1:	// some errors
 		break;
 	case 0:		// open configure dialog
-		ret = mySaver->openConfigBox(hInstance, hParent);
+		ret = mySaver->openConfigBox(hParent, hInstance);
 		break;
 	default:	// open window and start msg pumps
-		ret = mySaver->startApp(hInstance, nCmdShow);
+		ret = mySaver->startApp(hParent, hInstance, nCmdShow);
 	}
 #endif
 	delete mySaver;
@@ -117,11 +117,11 @@ AppWindow::~AppWindow()
 
 /**
 */
-int AppWindow::startApp(HINSTANCE hInstance, int nCmdShow)
+int AppWindow::startApp(HWND hParent, HINSTANCE hInstance, int nCmdShow)
 {
 	// Register && create window instance:
 	if (registerWindow(hInstance) 
-		&& createWindow(nCmdShow))
+		&& createWindow(hParent, hInstance, nCmdShow))
 	{
 		// run message pump
 		return messagePump();
@@ -131,7 +131,7 @@ int AppWindow::startApp(HINSTANCE hInstance, int nCmdShow)
 
 /**
 */
-int AppWindow::openConfigBox(HINSTANCE inst, HWND hParent)
+int AppWindow::openConfigBox(HWND hParent, HINSTANCE inst)
 {
 	DialogBoxParam(inst,
 		MAKEINTRESOURCE(DLG_SCRNSAVECONFIGURE),
@@ -197,7 +197,7 @@ BOOL AppWindow::registerWindow(HINSTANCE hInstance)
 
 /**
 */
-BOOL AppWindow::createWindow(int nCmdShow)
+BOOL AppWindow::createWindow(HWND hParent, HINSTANCE hInstance, int nCmdShow)
 {
 	UINT exStyle = WS_EX_APPWINDOW;
 	UINT style = WS_OVERLAPPEDWINDOW;
@@ -206,25 +206,25 @@ BOOL AppWindow::createWindow(int nCmdShow)
 	left = top = width = height = 0;
 
 	// if parent set, make sure not trying to do full screen
-	if (this->window.hParent && !IsWindow(this->window.hParent))
+	if (hParent && !IsWindow(hParent))
 		return FALSE;
 
 	// preview
-	if (this->window.hParent) {
+	if (hParent) {
 		RECT pRect;
-		GetClientRect(this->window.hParent, &pRect);
+		GetClientRect(hParent, &pRect);
 		width = pRect.right;
 		height = pRect.bottom;
 		
 		style = WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN;
 		exStyle = 0;
-		this->window.init.isPreview = TRUE;
+		window.init.isPreview = TRUE;
 
 		// set different name for init.title
-		LoadString(this->app->hInstance, IDS_APP_TITLE_PVW, this->window.init.title, MAX_LOADSTRING);
+		LoadString(hInstance, IDS_APP_TITLE_PVW, window.init.title, MAX_LOADSTRING);
 	}
 	// full screen
-	else if (this->window.init.isFullScreen) {
+	else if (window.init.isFullScreen) {
 		left = GetSystemMetrics(SM_XVIRTUALSCREEN);
 		top = GetSystemMetrics(SM_YVIRTUALSCREEN);
 		width = GetSystemMetrics(SM_CXVIRTUALSCREEN);
@@ -232,13 +232,14 @@ BOOL AppWindow::createWindow(int nCmdShow)
 	
 		style = WS_POPUP | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
 		exStyle = WS_EX_TOPMOST;
-		this->window.hParent = HWND_DESKTOP;
+		hParent = HWND_DESKTOP;
 	}
 	// windowed
 	else {
 		width = this->window.init.width;
 		height = this->window.init.height;
 	}
+	window.hParent = hParent;
 
 	// create the window
 	this->window.hWnd = ::CreateWindowEx(
@@ -412,11 +413,12 @@ INT_PTR CALLBACK AppWindow::_staticDialogProc(HWND hDlg, UINT msg, WPARAM wpm, L
 	// common message processing
 	switch(msg) {
 	case WM_INITDIALOG:
+		InitCommonControls();
 		if (!aw) {
 			aw = (AppWindow*)lpm;
 			SetWindowLongPtr(hDlg, GWLP_USERDATA, lpm);
+//			if (aw)	return aw->saverConfigureDialog(hDlg, msg, wpm, lpm);
 		}
-		InitCommonControls();
 		return TRUE;
 #if 0
 	case WM_COMMAND:

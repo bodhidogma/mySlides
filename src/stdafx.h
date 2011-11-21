@@ -5,7 +5,7 @@
 
 #pragma once
 #pragma warning(disable: 4786)
-#pragma comment(linker, "/IGNORE:4786")
+//#pragma comment(linker, "/IGNORE:4786")
 
 //#include "targetver.h"
 
@@ -44,6 +44,7 @@ using namespace std;
 #pragma comment( lib, "glu32.lib" )
 
 // Additional headers
+#include "Resource.h"
 #include "FreeImage.h"
 
 // common #defines

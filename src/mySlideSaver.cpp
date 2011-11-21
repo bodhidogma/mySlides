@@ -4,15 +4,18 @@
 #include "stdafx.h"
 #include "mySlideSaver.h"
 
-#define DRAW_BOX
-#define TIMER_DURATION	15
+//#define DRAW_BOX
+#define	DEF_PREVIEW_DURATION	6
+#define	DEF_SLIDE_DURATION		10
 
 //#define IMAGE_PATH	_T("images")
-//#define IMAGE_PATH	_T("d:\\data\\pictures\\dcim-jpeg")
+#define IMAGE_PATH	_T("d:\\data\\pictures\\dcim-jpeg")
 //#define IMAGE_PATH	_T("z:\\media\\photos")
-#define IMAGE_PATH	_T("z:\\media\\photos\\2011")
+//#define IMAGE_PATH	_T("z:\\media\\photos\\2011")
 
 //#define IMAGE_PATH	_T("z:\\pmcavoy\\pictures\\myinet\\2010\\October")
+
+LPCTSTR registryPath = _T("Software\\QuedaNet\\mySlides");
 
 /**
 */
@@ -21,6 +24,7 @@ SlideSaver::SlideSaver()
 	memset(&state,0,sizeof(_State));
 	state.aspectRatio = 1.0;
 	slideFactory = NULL;
+	state.slideDuration = (window.init.isPreview ? DEF_PREVIEW_DURATION : DEF_SLIDE_DURATION);
 }
 
 /**
@@ -84,7 +88,7 @@ void SlideSaver::draw()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	if (slideFactory) {
-		state.totalTime = slideFactory->elapsedCheck(state.frameTime, TIMER_DURATION);
+		state.totalTime = slideFactory->elapsedCheck(state.frameTime, state.slideDuration);
 		slideFactory->drawSlide(getFPSLimit());
 	}
 
@@ -95,21 +99,19 @@ void SlideSaver::draw()
 */
 void SlideSaver::idleProc()
 {
-	// update timer
-	state.frameTime = state.timer.tick();
-	state.totalTime += state.frameTime;
-
 	if (state.drawOK)
 	{
-#ifdef DRAW_BOX
-		drawBox();
-#else
+		// update timer
+		state.frameTime = state.timer.tick();
+		state.totalTime += state.frameTime;
+#ifndef DRAW_BOX
 		draw();
-
 		if (state.totalTime < 4.0f)
 			setFPSLimit(30);
 		else
 			setFPSLimit(4);
+#else
+		drawBox();
 #endif
 	}
 }
@@ -126,10 +128,15 @@ void SlideSaver::initSaver()
 	state.drawOK = 1;
 
 #ifndef DRAWBOX
+	int limit = 0;
+	if (window.init.isPreview)
+		limit = 5;
+
 	slideFactory = new ImageFactory(IMAGE_PATH,
-		window.init.screenW, window.init.screenH, window.init.width, window.init.height);
+		window.init.screenW, window.init.screenH, window.init.width, window.init.height, limit);
 
 	setFPSLimit(30);
+	state.timer.tick();	// reset timer
 #endif
 }
 
@@ -195,18 +202,174 @@ void SlideSaver::shapeWindow()
 	glLoadIdentity();
 }
 
+void SlideSaver::setDefaults()
+{
+	state.slideDuration = DEF_SLIDE_DURATION;
+#if 0
+	dCyclones = 1;
+	dParticles = 400;
+	dSize = 7;
+	dComplexity = 3;
+	dSpeed = 10;
+	dStretch = TRUE;
+	dShowCurves = FALSE;
+#endif
+}
+
+void SlideSaver::readRegistry()
+{
+	LONG result;
+	HKEY skey;
+//	DWORD valtype, valsize, val;
+
+	setDefaults();
+
+	result = RegOpenKeyEx(HKEY_CURRENT_USER, registryPath, 0, KEY_READ, &skey);
+	if(result != ERROR_SUCCESS)
+		return;
+
+#if 0
+	valsize=sizeof(val);
+	result = RegQueryValueEx(skey, "Cyclones", 0, &valtype, (LPBYTE)&val, &valsize);
+	if(result == ERROR_SUCCESS)
+		dCyclones = val;
+	result = RegQueryValueEx(skey, "Particles", 0, &valtype, (LPBYTE)&val, &valsize);
+	if(result == ERROR_SUCCESS)
+		dParticles = val;
+	result = RegQueryValueEx(skey, "Size", 0, &valtype, (LPBYTE)&val, &valsize);
+	if(result == ERROR_SUCCESS)
+		dSize = val;
+	result = RegQueryValueEx(skey, "Complexity", 0, &valtype, (LPBYTE)&val, &valsize);
+	if(result == ERROR_SUCCESS)
+		dComplexity = val;
+	result = RegQueryValueEx(skey, "Speed", 0, &valtype, (LPBYTE)&val, &valsize);
+	if(result == ERROR_SUCCESS)
+		dSpeed = val;
+	result = RegQueryValueEx(skey, "Stretch", 0, &valtype, (LPBYTE)&val, &valsize);
+	if(result == ERROR_SUCCESS)
+		dStretch = val;
+	result = RegQueryValueEx(skey, "ShowCurves", 0, &valtype, (LPBYTE)&val, &valsize);
+	if(result == ERROR_SUCCESS)
+		dShowCurves = val;
+	result = RegQueryValueEx(skey, "FrameRateLimit", 0, &valtype, (LPBYTE)&val, &valsize);
+	if(result == ERROR_SUCCESS)
+		dFrameRateLimit = val;
+#endif
+	RegCloseKey(skey);
+}
+
+void SlideSaver::writeRegistry()
+{
+#if 0
+	LONG result;
+	HKEY skey;
+	DWORD val, disp;
+
+	result = RegCreateKeyEx(HKEY_CURRENT_USER, registryPath, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &skey, &disp);
+	if(result != ERROR_SUCCESS)
+		return;
+	val = dCyclones;
+	RegSetValueEx(skey, "Cyclones", 0, REG_DWORD, (CONST BYTE*)&val, sizeof(val));
+	val = dParticles;
+	RegSetValueEx(skey, "Particles", 0, REG_DWORD, (CONST BYTE*)&val, sizeof(val));
+	val = dSize;
+	RegSetValueEx(skey, "Size", 0, REG_DWORD, (CONST BYTE*)&val, sizeof(val));
+	val = dComplexity;
+	RegSetValueEx(skey, "Complexity", 0, REG_DWORD, (CONST BYTE*)&val, sizeof(val));
+	val = dSpeed;
+	RegSetValueEx(skey, "Speed", 0, REG_DWORD, (CONST BYTE*)&val, sizeof(val));
+	val = dStretch;
+	RegSetValueEx(skey, "Stretch", 0, REG_DWORD, (CONST BYTE*)&val, sizeof(val));
+	val = dShowCurves;
+	RegSetValueEx(skey, "ShowCurves", 0, REG_DWORD, (CONST BYTE*)&val, sizeof(val));
+	val = dFrameRateLimit;
+	RegSetValueEx(skey, "FrameRateLimit", 0, REG_DWORD, (CONST BYTE*)&val, sizeof(val));
+	RegCloseKey(skey);
+#endif
+}
+
+void SlideSaver::initControls(HWND hDlg)
+{
+	char cval[32];
+
+	SendDlgItemMessage(hDlg, IDC_DISPTIME, TBM_SETRANGE, 0, LPARAM(MAKELONG(DWORD(1), DWORD(120))));
+	SendDlgItemMessage(hDlg, IDC_DISPTIME, TBM_SETPOS, 1, LPARAM(state.slideDuration));
+	SendDlgItemMessage(hDlg, IDC_DISPTIME, TBM_SETLINESIZE, 0, LPARAM(1));
+	SendDlgItemMessage(hDlg, IDC_DISPTIME, TBM_SETPAGESIZE, 0, LPARAM(2));
+	sprintf(cval, "%d Seconds", state.slideDuration);
+	SendDlgItemMessage(hDlg, IDC_DISPTIME_TEXT, WM_SETTEXT, 0, LPARAM(cval));
+
+#if 0
+	char cval[16];
+
+	SendDlgItemMessage(hdlg, CYCLONES, UDM_SETRANGE, 0, LPARAM(MAKELONG(DWORD(10), DWORD(1))));
+	SendDlgItemMessage(hdlg, CYCLONES, UDM_SETPOS, 0, LPARAM(dCyclones));
+
+	SendDlgItemMessage(hdlg, PARTICLES, UDM_SETRANGE, 0, LPARAM(MAKELONG(DWORD(10000), DWORD(1))));
+	SendDlgItemMessage(hdlg, PARTICLES, UDM_SETPOS, 0, LPARAM(dParticles));
+
+	SendDlgItemMessage(hdlg, PARTICLESIZE, TBM_SETRANGE, 0, LPARAM(MAKELONG(DWORD(1), DWORD(100))));
+	SendDlgItemMessage(hdlg, PARTICLESIZE, TBM_SETPOS, 1, LPARAM(dSize));
+	SendDlgItemMessage(hdlg, PARTICLESIZE, TBM_SETLINESIZE, 0, LPARAM(1));
+	SendDlgItemMessage(hdlg, PARTICLESIZE, TBM_SETPAGESIZE, 0, LPARAM(5));
+	sprintf(cval, "%d", dSize);
+	SendDlgItemMessage(hdlg, SIZETEXT, WM_SETTEXT, 0, LPARAM(cval));
+
+	SendDlgItemMessage(hdlg, COMPLEXITY, TBM_SETRANGE, 0, LPARAM(MAKELONG(DWORD(1), DWORD(10))));
+	SendDlgItemMessage(hdlg, COMPLEXITY, TBM_SETPOS, 1, LPARAM(dComplexity));
+	SendDlgItemMessage(hdlg, COMPLEXITY, TBM_SETLINESIZE, 0, LPARAM(1));
+	SendDlgItemMessage(hdlg, COMPLEXITY, TBM_SETPAGESIZE, 0, LPARAM(2));
+	sprintf(cval, "%d", dComplexity);
+	SendDlgItemMessage(hdlg, COMPLEXITYTEXT, WM_SETTEXT, 0, LPARAM(cval));
+
+	SendDlgItemMessage(hdlg, SPEED, TBM_SETRANGE, 0, LPARAM(MAKELONG(DWORD(1), DWORD(100))));
+	SendDlgItemMessage(hdlg, SPEED, TBM_SETPOS, 1, LPARAM(dSpeed));
+	SendDlgItemMessage(hdlg, SPEED, TBM_SETLINESIZE, 0, LPARAM(1));
+	SendDlgItemMessage(hdlg, SPEED, TBM_SETPAGESIZE, 0, LPARAM(10));
+	sprintf(cval, "%d", dSpeed);
+	SendDlgItemMessage(hdlg, SPEEDTEXT, WM_SETTEXT, 0, LPARAM(cval));
+
+	CheckDlgButton(hdlg, STRETCH, dStretch);
+
+	CheckDlgButton(hdlg, SHOWCURVES, dShowCurves);
+
+	initFrameRateLimitSlider(hdlg, FRAMERATELIMIT, FRAMERATELIMITTEXT);
+#endif
+}
+
 /**
 */
 BOOL SlideSaver::saverConfigureDialog(HWND hDlg, UINT msg, WPARAM wpm, LPARAM lpm)
 {
 	switch(msg) {
+	case WM_INITDIALOG:
+//		InitCommonControls();
+		readRegistry();
+		initControls(hDlg);
+		return TRUE;
 	case WM_COMMAND:
 		switch(LOWORD(wpm)) {
 		case IDOK:
-		// Fall through
+#if 0
+			dCyclones = SendDlgItemMessage(hdlg, CYCLONES, UDM_GETPOS, 0, 0);
+			dParticles = SendDlgItemMessage(hdlg, PARTICLES, UDM_GETPOS, 0, 0);
+			dSize = SendDlgItemMessage(hdlg, PARTICLESIZE, TBM_GETPOS, 0, 0);
+			dComplexity = SendDlgItemMessage(hdlg, COMPLEXITY, TBM_GETPOS, 0, 0);
+			dSpeed = SendDlgItemMessage(hdlg, SPEED, TBM_GETPOS, 0, 0);
+			dStretch = (IsDlgButtonChecked(hdlg, STRETCH) == BST_CHECKED);
+			dShowCurves = (IsDlgButtonChecked(hdlg, SHOWCURVES) == BST_CHECKED);
+			dFrameRateLimit = SendDlgItemMessage(hdlg, FRAMERATELIMIT, TBM_GETPOS, 0, 0);
+#endif
+			writeRegistry();
+			// Fall through
 		case IDCANCEL:
 			EndDialog(hDlg, LOWORD(wpm));
 			break;
+		case IDC_DEFAULTS:
+			setDefaults();
+			initControls(hDlg);
+			break;
+//		case IDC_ABOUT:
 		}
 		return TRUE;
 	}
