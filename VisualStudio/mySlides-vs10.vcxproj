@@ -90,6 +90,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\Image.cpp" />
+    <ClCompile Include="..\src\ImageFactory.cpp" />
     <ClCompile Include="..\src\main_win32.cpp" />
     <ClCompile Include="..\src\mySlideSaver.cpp" />
     <ClCompile Include="..\src\stdafx.cpp">
@@ -97,9 +99,12 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\src\Image.h" />
+    <ClInclude Include="..\src\ImageFactory.h" />
     <ClInclude Include="..\src\main_window.h" />
     <ClInclude Include="..\src\mySlideSaver.h" />
     <ClInclude Include="..\src\Resource.h" />
+    <ClInclude Include="..\src\rsTimer.h" />
     <ClInclude Include="..\src\stdafx.h" />
   </ItemGroup>
   <ItemGroup>

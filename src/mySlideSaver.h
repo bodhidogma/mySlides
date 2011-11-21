@@ -5,6 +5,8 @@
 #define _MYSLIDESAVER_H_
 
 #include "main_window.h"
+#include "ImageFactory.h"
+#include "rsTimer.h"
 
 struct _State {
 	BOOL drawOK;
@@ -13,6 +15,7 @@ struct _State {
 	float aspectRatio;
 	//
 	float r;
+	rsTimer timer;
 };
 
 class SlideSaver : public AppWindow
@@ -35,6 +38,9 @@ protected:
 
 private:
 	void draw();
+	void drawBox();
+
+	ImageFactory *slideFactory;
 };
 
 #endif

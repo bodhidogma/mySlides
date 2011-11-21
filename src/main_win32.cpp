@@ -6,6 +6,7 @@
 #include "mySlideSaver.h"
 //#include "main_window.h"
 
+#include "rsTimer.h"
 #include <fstream>
 
 BOOL checkPassword(HWND hwnd);
@@ -33,7 +34,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	LPWSTR *szArglist;
 	int nArgs;
 	int i;
-	HWND hParent = GetForegroundWindow();
+	HWND hParent = HWND_DESKTOP;
 
 	if (!mySaver)
 		return -1;
@@ -48,6 +49,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 		}
 		// saver settings dialog
 		else if (!_wcsnicmp(L"/c", szArglist[i],2)) {
+			hParent = GetForegroundWindow();
 			mySaver->setParent(hParent);
 			ret = 0;
 			break;
@@ -117,15 +119,14 @@ AppWindow::~AppWindow()
 */
 int AppWindow::startApp(HINSTANCE hInstance, int nCmdShow)
 {
-	// register window class
-	registerWindow(hInstance);
-
-	// Perform application initialization:
-	if (!createWindow(nCmdShow))
-		return FALSE;
-
-	// run message pump
-	return messagePump();
+	// Register && create window instance:
+	if (registerWindow(hInstance) 
+		&& createWindow(nCmdShow))
+	{
+		// run message pump
+		return messagePump();
+	}
+	return FALSE;
 }
 
 /**
@@ -231,6 +232,7 @@ BOOL AppWindow::createWindow(int nCmdShow)
 	
 		style = WS_POPUP | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
 		exStyle = WS_EX_TOPMOST;
+		this->window.hParent = HWND_DESKTOP;
 	}
 	// windowed
 	else {
@@ -246,7 +248,7 @@ BOOL AppWindow::createWindow(int nCmdShow)
 		style,						// window style
 		left, top,					// origin X,Y
 		width, height,				// width,height
-		HWND_DESKTOP,				// parent
+		this->window.hParent,		// parent
 		NULL,						// menu
 		this->app->hInstance,		// window instance
 		(LPVOID)this				// push (this) to be associated with the window
@@ -276,11 +278,34 @@ int AppWindow::messagePump()
 	if (!this->window.hWnd)
 		return 0;
 
+	float timeRemaining = 0.0f;
+	rsTimer timer;
+
 	while (1) {
 		// Main message loop:
 		while (!::PeekMessage(&msg, NULL,0,0, PM_NOREMOVE)) {
-			this->idleProc();
-			Sleep(1);
+
+			if (window.isSuspended)
+				Sleep(1);
+			else if (window.timeStep != 0.0f) {
+				timeRemaining -= timer.tick();
+				// prevent underflow
+				if (timeRemaining < -1000.0f)
+					timeRemaining = 0.0f;
+				if (timeRemaining> 0.0f) {
+					// wait some more
+					if (timeRemaining > 0.001f)
+						Sleep(1);
+				}
+				else {
+					this->idleProc();
+					timeRemaining += window.timeStep;
+				}
+			}
+			else {
+				this->idleProc();
+				Sleep(1);
+			}
 		}
 		// process message if found in queue
 		if (::GetMessage(&msg, NULL, 0, 0)) {
@@ -316,6 +341,22 @@ LRESULT AppWindow::appWindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		if (!window.init.isPreview && window.init.isFullScreen)
 			SetCursor(NULL);		// clear cursor if full screen
 		break;
+	case WM_SYSCOMMAND:
+		if (!window.init.isPreview) {
+			switch (wParam) 
+			{
+			case SC_NEXTWINDOW:
+			case SC_PREVWINDOW:
+			case SC_SCREENSAVE:
+				return FALSE;
+			case SC_MONITORPOWER:
+				if (lParam == 1 || lParam == 2 && window.init.isFullScreen)
+					window.isSuspended = 1;
+				break;
+			}
+		}
+	case WM_CLOSE:
+		window.isSuspended = 0;
 #if 0
 	case WM_PAINT:
 		{

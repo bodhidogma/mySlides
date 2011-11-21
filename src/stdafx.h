@@ -4,36 +4,13 @@
 //
 
 #pragma once
-//#pragma comment(linker, "/IGNORE:4786")
+#pragma warning(disable: 4786)
+#pragma comment(linker, "/IGNORE:4786")
 
 //#include "targetver.h"
 
 //#undef UNICODE
 //#define UNICODE
-#ifdef UNICODE
-#define tstring wstring
-#define _tFreeImage_GetFileType FreeImage_GetFileTypeU
-#define _tFreeImage_Load FreeImage_LoadU
-#else
-#define tstring string
-#define _tFreeImage_GetFileType FreeImage_GetFileType
-#define _tFreeImage_Load FreeImage_Load
-#endif
-
-
-// MSVC6 workarounds (MSC_VER = 1200)
-#ifndef SM_XVIRTUALSCREEN
-#define SM_XVIRTUALSCREEN 76
-#define SM_YVIRTUALSCREEN 77
-#define SM_CXVIRTUALSCREEN 78
-#define SM_CYVIRTUALSCREEN 79
-#endif
-#ifndef GWLP_USERDATA
-#define GWLP_USERDATA GWL_USERDATA
-#endif
-#ifndef SetWindowLongPtr
-#define SetWindowLongPtr SetWindowLong
-#endif
 
 #define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
 // Windows Header Files:
@@ -71,3 +48,27 @@ using namespace std;
 
 // common #defines
 #define MAX_LOADSTRING 100
+
+#ifdef UNICODE
+#define tstring wstring
+#define _tFreeImage_GetFileType FreeImage_GetFileTypeU
+#define _tFreeImage_Load FreeImage_LoadU
+#else
+#define tstring string
+#define _tFreeImage_GetFileType FreeImage_GetFileType
+#define _tFreeImage_Load FreeImage_Load
+#endif
+
+// MSVC6 workarounds (MSC_VER = 1200)
+#ifndef SM_XVIRTUALSCREEN
+#define SM_XVIRTUALSCREEN 76
+#define SM_YVIRTUALSCREEN 77
+#define SM_CXVIRTUALSCREEN 78
+#define SM_CYVIRTUALSCREEN 79
+#endif
+#ifndef GWLP_USERDATA
+#define GWLP_USERDATA GWL_USERDATA
+#endif
+#ifndef SetWindowLongPtr
+#define SetWindowLongPtr SetWindowLong
+#endif

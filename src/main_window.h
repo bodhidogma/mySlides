@@ -28,6 +28,8 @@ typedef struct {									// Contains Information Vital To A Window
 	_WindowInit			init;						// Window Init
 	BOOL				isVisible;					// Window Visible?
 	DWORD				lastTickCount;				// Tick Counter
+	float				timeStep;
+	BOOL			isSuspended;
 } _Window;										// GL_Window
 
 // externally defined class
@@ -40,6 +42,9 @@ class AppWindow
 public:
 	AppWindow();
 	~AppWindow();
+
+	void	setFPSLimit(float FPS) {window.timeStep = (FPS ? 1.0f/FPS: 0.0f);}
+	float   getFPSLimit(){ return 1.0f/window.timeStep; };
 	
 	void    setFullScreen(BOOL doFS) {window.init.isFullScreen = doFS;}
 	void	setSize(int w, int h){window.init.width=w; window.init.height=h;}
