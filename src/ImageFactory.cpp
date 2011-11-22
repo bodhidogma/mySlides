@@ -132,8 +132,7 @@ int ImageFactory::loadSlides(tstring basePath, int limit)
 		}
 		FindClose( h );
 	}
-	if (cnt == limit)
-		return cnt;
+//	if (limit && cnt == limit) return cnt;
 
 	h = FindFirstFile( ( basePath + _T("*") ).c_str(), &fd );
 	if ( h != INVALID_HANDLE_VALUE ) {

@@ -21,7 +21,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 {
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
-#if 1
+#if 0
 	std::ofstream outfile;
 	outfile.open("c:\\tmp\\cmdline"); outfile<<"cmd="<< GetCommandLineA() <<std::endl; outfile.close();
 #endif
@@ -38,7 +38,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 	if (!mySaver)
 		return -1;
-#if 1
+
 	szArglist = CommandLineToArgvW(GetCommandLineW(), &nArgs);
 	for (i=1; szArglist && i<nArgs; i++) {
 		ret = i;
@@ -87,9 +87,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	default:	// open window and start msg pumps
 		ret = mySaver->startApp(hParent, hInstance, nCmdShow);
 	}
-#endif
 	delete mySaver;
-	mySaver = 0;
 
 	return ret;
 }

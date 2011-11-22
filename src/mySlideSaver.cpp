@@ -17,9 +17,9 @@
 //#define IMAGE_PATH	_T("images")
 //#define IMAGE_PATH	_T("d:\\data\\pictures\\dcim-jpeg")
 //#define IMAGE_PATH	_T("z:\\media\\photos")
-//#define IMAGE_PATH	_T("z:\\media\\photos\\2011")
+#define IMAGE_PATH	_T("z:\\media\\photos\\2011")
 
-#define IMAGE_PATH	_T("z:\\pmcavoy\\pictures\\myinet\\2010\\October")
+//#define IMAGE_PATH	_T("z:\\pmcavoy\\pictures\\myinet\\2010\\October")
 
 /**
 */
@@ -30,7 +30,9 @@ SlideSaver::SlideSaver()
 	slideFactory = NULL;
 	// some 
 	state.registryPath = REGISTRY_PATH;
-	state.slidePaths.resize(0);
+
+//	state.slidePaths.resize(0);
+//	state.slidePaths.clear();
 }
 
 /**
@@ -258,14 +260,7 @@ void SlideSaver::setDefaults()
 {
 	state.slideDuration = DEF_SLIDE_DURATION;
 	state.transitionDuration = DEF_TRANS_DURATION;
-	state.slidePaths.push_back( IMAGE_PATH );
-
-#if 0
-	dCyclones = 1;
-	dSpeed = 10;
-	dStretch = TRUE;
-	dShowCurves = FALSE;
-#endif
+//	state.slidePaths.push_back( IMAGE_PATH );
 }
 
 /**
@@ -294,7 +289,7 @@ void SlideSaver::readRegistry()
 	valsize = 256*sizeof(TCHAR);
 	result = RegQueryValueEx(skey, _T("slide_path"), 0, &valtype, (LPBYTE)&cval, &valsize);
 	if(result == ERROR_SUCCESS){
-		state.slidePaths.clear();
+		while (state.slidePaths.size()) state.slidePaths.pop_back();
 		state.slidePaths.push_back( cval );
 	}
 #if 0
@@ -335,15 +330,15 @@ void SlideSaver::writeRegistry()
 */
 void SlideSaver::initControls(HWND hDlg)
 {
-	TCHAR cval[32];
+	CHAR cval[32];
 
 	SendDlgItemMessage(hDlg, IDC_DISPTIME, TBM_SETRANGE, 0, LPARAM(MAKELONG(DWORD(2), DWORD(120))));
 	SendDlgItemMessage(hDlg, IDC_DISPTIME, TBM_SETPOS, 1, LPARAM(state.slideDuration));
 	SendDlgItemMessage(hDlg, IDC_DISPTIME, TBM_SETLINESIZE, 0, LPARAM(1));
 	SendDlgItemMessage(hDlg, IDC_DISPTIME, TBM_SETPAGESIZE, 0, LPARAM(2));
 	SendDlgItemMessage(hDlg, IDC_DISPTIME, TBM_SETTICFREQ, 10, 0);
-	_stprintf_s(cval, 32, _T("%d Seconds"), state.slideDuration);
-	SendDlgItemMessage(hDlg, IDC_DISPTIME_TEXT, WM_SETTEXT, 0, LPARAM(cval));
+	_snprintf(cval, 32, "%d Seconds", state.slideDuration);
+	SendDlgItemMessageA(hDlg, IDC_DISPTIME_TEXT, WM_SETTEXT, 0, LPARAM(cval));
 
 	SendDlgItemMessage(hDlg, IDC_DIR_LIST, LB_ADDSTRING, 0, LPARAM(state.slidePaths[0].c_str()));
 #if 0
@@ -389,7 +384,7 @@ void SlideSaver::initControls(HWND hDlg)
 BOOL SlideSaver::saverConfigureDialog(HWND hDlg, UINT msg, WPARAM wpm, LPARAM lpm)
 {
 	int ival;
-	TCHAR cval[256] = {0};
+	CHAR cval[256] = {0};
 
 	switch(msg) {
 	case WM_INITDIALOG:
@@ -422,8 +417,8 @@ BOOL SlideSaver::saverConfigureDialog(HWND hDlg, UINT msg, WPARAM wpm, LPARAM lp
 		if (HWND(lpm) == GetDlgItem(hDlg, IDC_DISPTIME)) {
 			ival = SendDlgItemMessage(hDlg, IDC_DISPTIME, TBM_GETPOS, 0, 0);
 //			ival = (ival / 5) * 5;
-			_stprintf_s(cval, 32, _T("%d Seconds"), ival);
-			SendDlgItemMessage(hDlg, IDC_DISPTIME_TEXT, WM_SETTEXT, 0, LPARAM(cval));
+			_snprintf(cval, 32, "%d Seconds", ival);
+			SendDlgItemMessageA(hDlg, IDC_DISPTIME_TEXT, WM_SETTEXT, 0, LPARAM(cval));
 		}
 		return TRUE;
 	}
