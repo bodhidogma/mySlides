@@ -16,7 +16,12 @@ struct _State {
 	//
 	float r;
 	rsTimer timer;
+	//
 	int slideDuration;
+	int transitionDuration;
+	vector<tstring> slidePaths;
+	//
+	LPCTSTR registryPath;
 };
 
 class SlideSaver : public AppWindow

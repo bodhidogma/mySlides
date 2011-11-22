@@ -9,14 +9,14 @@
 class ImageFactory
 {
 public:
-	ImageFactory(TCHAR *basePath, int maxWidth, int maxHeight, int winWidth, int winHeight, int limit);
+	ImageFactory(tstring *basePath, int maxWidth, int maxHeight, int winWidth, int winHeight, int limit);
 	~ImageFactory();
 
 	void updateWinSize(int width, int height);
 
-	void nextSlide(int doFadeOut);
+	void nextSlide(float fadeDur);
 	int  drawSlide(float FPS);
-	float elapsedCheck( float sElapse, int nextSeconds );
+	float elapsedCheck( float sElapse, int nextSeconds, float fadeDur );
 
 private:
 	int loadSlides(tstring basePath, int limit);

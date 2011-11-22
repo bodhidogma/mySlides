@@ -92,6 +92,14 @@ LINK32=link.exe
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
+SOURCE=..\src\Image.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\src\ImageFactory.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=..\src\main_win32.cpp
 # End Source File
 # Begin Source File
@@ -121,11 +129,23 @@ SOURCE=..\lib\FreeImage.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\src\Image.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\src\ImageFactory.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\src\main_window.h
 # End Source File
 # Begin Source File
 
 SOURCE=..\src\mySlideSaver.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\src\rsTimer.h
 # End Source File
 # Begin Source File
 

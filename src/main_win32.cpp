@@ -170,7 +170,7 @@ BOOL AppWindow::registerWindow(HINSTANCE hInstance)
 	wcex.lpfnWndProc	= this->_staticWindowProc;
 	wcex.cbClsExtra		= 0;
 	wcex.cbWndExtra		= 0;
-	wcex.hInstance		= this->app->hInstance;
+	wcex.hInstance		= hInstance;
 	wcex.hIcon			= LoadIcon(wcex.hInstance, MAKEINTRESOURCE(ID_APP));
 //	wcex.hCursor		= LoadCursor(NULL, IDC_ARROW);
 //	wcex.hbrBackground	= (HBRUSH)(COLOR_WINDOW+1);				// default BG color
@@ -249,19 +249,17 @@ BOOL AppWindow::createWindow(HWND hParent, HINSTANCE hInstance, int nCmdShow)
 		style,						// window style
 		left, top,					// origin X,Y
 		width, height,				// width,height
-		this->window.hParent,		// parent
+		hParent,					// parent
 		NULL,						// menu
-		this->app->hInstance,		// window instance
+		hInstance,					// window instance
 		(LPVOID)this				// push (this) to be associated with the window
 		);
 
 	if (!this->window.hWnd)
 		return FALSE;
 
-//	if (this->window.init.isFullScreen) {
 	if (!this->window.init.isPreview)
 		::SetForegroundWindow( this->window.hWnd );
-//	}
 
 	// show and update window
 	::ShowWindow(this->window.hWnd, nCmdShow);
@@ -406,6 +404,8 @@ LRESULT CALLBACK AppWindow::_staticWindowProc(HWND hWnd, UINT message, WPARAM wP
 		return ::DefWindowProc(hWnd, message, wParam, lParam);
 }
 
+/**
+*/
 INT_PTR CALLBACK AppWindow::_staticDialogProc(HWND hDlg, UINT msg, WPARAM wpm, LPARAM lpm)
 {
 	// get handle to original creating class (this) and call class custom callback
@@ -417,9 +417,8 @@ INT_PTR CALLBACK AppWindow::_staticDialogProc(HWND hDlg, UINT msg, WPARAM wpm, L
 		if (!aw) {
 			aw = (AppWindow*)lpm;
 			SetWindowLongPtr(hDlg, GWLP_USERDATA, lpm);
-//			if (aw)	return aw->saverConfigureDialog(hDlg, msg, wpm, lpm);
 		}
-		return TRUE;
+		break;
 #if 0
 	case WM_COMMAND:
         switch(LOWORD(wpm)){

@@ -14,3 +14,5 @@
 #define IDC_DIR_LIST                            40006
 #define IDC_DEFAULTS                            40007
 #define IDC_DISPTIME_TEXT                       40008
+#define IDC_ADD                                 40011
+#define IDC_DELETE                              40012

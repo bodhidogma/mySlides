@@ -9,10 +9,10 @@
 
 /**
 */
-ImageFactory::ImageFactory(TCHAR *basePath,
+ImageFactory::ImageFactory(tstring *basePath,
 	int theMaxWidth, int theMaxHeight, int theWinWidth, int theWinHeight, int limit)
 {
-	searchBase = basePath;
+	searchBase = basePath->c_str();
 	currentName = 0;
 	theSlide = oldSlide = NULL;
 	sElapsed = 0;
@@ -29,7 +29,7 @@ ImageFactory::ImageFactory(TCHAR *basePath,
 	currentName = slideNames.size();
 
 	// pick next slide
-	this->nextSlide(1);
+	this->nextSlide(1.0f);
 }
 
 /**
@@ -50,19 +50,19 @@ void ImageFactory::updateWinSize(int width, int height)
 	winHeight = height;
 }
 
-float ImageFactory::elapsedCheck(float sElapse, int nextSeconds)
+float ImageFactory::elapsedCheck(float sElapse, int nextSeconds, float fadeDur)
 {
 	this->sElapsed += sElapse;
 
 	if (this->sElapsed >= (float)nextSeconds) {
-		nextSlide(1);
+		nextSlide(fadeDur);
 	}
 	return this->sElapsed;
 }
 
 /**
 */
-void ImageFactory::nextSlide(int doFadeOut)
+void ImageFactory::nextSlide(float fadeDur)
 {
 	sElapsed = 0;	// reset elapsed time
 	if (currentName == slideNames.size())
@@ -76,7 +76,7 @@ void ImageFactory::nextSlide(int doFadeOut)
 		delete oldSlide;
 		oldSlide = NULL;
 	}
-	if (doFadeOut && theSlide)
+	if ((fadeDur != 0.0f) && theSlide)
 	{
 		oldSlide = theSlide;
 		oldSlide->setOld();
@@ -84,7 +84,7 @@ void ImageFactory::nextSlide(int doFadeOut)
 
 	// load new slide
 	if (!slideNames.empty())
-		theSlide = new Image( slideNames[ currentName ], maxWidth,maxHeight);
+		theSlide = new Image( slideNames[ currentName ], maxWidth,maxHeight, fadeDur);
 
 	// iterate to next slide
 	currentName++;

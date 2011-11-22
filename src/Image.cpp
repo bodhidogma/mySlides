@@ -6,18 +6,18 @@
 
 extern GLvoid glPrint(const TCHAR *fmt, ...);
 
-#define FADE_DELTA	0.05f
 #define FADE_DURATION	3.0f
 
 /**
 */
-Image::Image(tstring imageName, int maxWidth, int maxHeight)
+Image::Image(tstring imageName, int maxWidth, int maxHeight, float fadeDur)
 {
 	memset(&this->m, 0, sizeof(Metadata));
 	fade_alpha = 0.0;	// start w/ black
 	
 	x = y = 0.0;
 	isNew = TRUE;	// this image is always new (unless modified)
+	fade_dur = fadeDur;
 
 	m.name = imageName;
 	loadImageTexture(imageName,maxWidth,maxHeight);
@@ -136,7 +136,7 @@ int Image::Draw(int width, int height, float FPS)
 	if ( this->x < 1.0 ) this->x += .1f;
 	if (this->y < 100.0) this->y += 1.0f;
 
-	if (fade_alpha < 1.0) fade_alpha += (1.0f / (FPS* FADE_DURATION));
+	if (fade_dur && fade_alpha < 1.0) fade_alpha += (1.0f / (FPS* fade_dur));
 
 
 	// adjust image scale according to window dimensions

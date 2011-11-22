@@ -175,6 +175,14 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath="..\src\Image.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\src\ImageFactory.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\src\main_win32.cpp"
 				>
 			</File>
@@ -201,6 +209,14 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
+				RelativePath="..\src\Image.h"
+				>
+			</File>
+			<File
+				RelativePath="..\src\ImageFactory.h"
+				>
+			</File>
+			<File
 				RelativePath="..\src\main_window.h"
 				>
 			</File>
@@ -210,6 +226,10 @@
 			</File>
 			<File
 				RelativePath="..\src\Resource.h"
+				>
+			</File>
+			<File
+				RelativePath="..\src\rsTimer.h"
 				>
 			</File>
 			<File

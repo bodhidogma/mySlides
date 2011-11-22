@@ -5,17 +5,21 @@
 #include "mySlideSaver.h"
 
 //#define DRAW_BOX
-#define	DEF_PREVIEW_DURATION	6
-#define	DEF_SLIDE_DURATION		10
+
+#define	DEF_PREVIEW_DURATION	5	// 5s
+#define	DEF_SLIDE_DURATION		10	// 10s
+#define DEF_TRANS_DURATION		2	// 2s
+#define REGISTRY_PATH			_T("Software\\QuedaNet\\mySlides")
+
+#define MAX_SLIDE_FPS			30
+#define MIN_SLIDE_FPS			5
 
 //#define IMAGE_PATH	_T("images")
-#define IMAGE_PATH	_T("d:\\data\\pictures\\dcim-jpeg")
+//#define IMAGE_PATH	_T("d:\\data\\pictures\\dcim-jpeg")
 //#define IMAGE_PATH	_T("z:\\media\\photos")
 //#define IMAGE_PATH	_T("z:\\media\\photos\\2011")
 
-//#define IMAGE_PATH	_T("z:\\pmcavoy\\pictures\\myinet\\2010\\October")
-
-LPCTSTR registryPath = _T("Software\\QuedaNet\\mySlides");
+#define IMAGE_PATH	_T("z:\\pmcavoy\\pictures\\myinet\\2010\\October")
 
 /**
 */
@@ -24,7 +28,9 @@ SlideSaver::SlideSaver()
 	memset(&state,0,sizeof(_State));
 	state.aspectRatio = 1.0;
 	slideFactory = NULL;
-	state.slideDuration = (window.init.isPreview ? DEF_PREVIEW_DURATION : DEF_SLIDE_DURATION);
+	// some 
+	state.registryPath = REGISTRY_PATH;
+	state.slidePaths.resize(0);
 }
 
 /**
@@ -88,7 +94,8 @@ void SlideSaver::draw()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	if (slideFactory) {
-		state.totalTime = slideFactory->elapsedCheck(state.frameTime, state.slideDuration);
+		state.totalTime = slideFactory->elapsedCheck(state.frameTime,
+			state.slideDuration, (float)state.transitionDuration);
 		slideFactory->drawSlide(getFPSLimit());
 	}
 
@@ -106,10 +113,10 @@ void SlideSaver::idleProc()
 		state.totalTime += state.frameTime;
 #ifndef DRAW_BOX
 		draw();
-		if (state.totalTime < 4.0f)
-			setFPSLimit(30);
+		if (state.totalTime <= (float)state.transitionDuration+0.5f)
+			setFPSLimit(MAX_SLIDE_FPS);
 		else
-			setFPSLimit(4);
+			setFPSLimit(MIN_SLIDE_FPS);
 #else
 		drawBox();
 #endif
@@ -120,6 +127,14 @@ void SlideSaver::idleProc()
 */
 void SlideSaver::initSaver()
 {
+	readRegistry();
+//	writeRegistry();
+
+	// if in preview mode, do some things a bit different
+	if (window.init.isPreview) {
+		state.slideDuration = DEF_PREVIEW_DURATION;
+	}
+
 	this->setBestPixelFormat();
 	this->window.hRC = wglCreateContext(this->window.hDC);
 	wglMakeCurrent(this->window.hDC, this->window.hRC);
@@ -132,10 +147,10 @@ void SlideSaver::initSaver()
 	if (window.init.isPreview)
 		limit = 5;
 
-	slideFactory = new ImageFactory(IMAGE_PATH,
+	slideFactory = new ImageFactory(&state.slidePaths[0],
 		window.init.screenW, window.init.screenH, window.init.width, window.init.height, limit);
 
-	setFPSLimit(30);
+	setFPSLimit(MAX_SLIDE_FPS);
 	state.timer.tick();	// reset timer
 #endif
 }
@@ -202,103 +217,135 @@ void SlideSaver::shapeWindow()
 	glLoadIdentity();
 }
 
+#if 0
+DWORD type, size;
+vector<wstring> target;
+if ( RegQueryValueExW(
+    your_key, // HKEY
+    TEXT("ValueName"),
+    NULL,
+    &type,
+    NULL,
+    &size ) != ERROR_SUCCESS )
+  return;
+if ( type == REG_MULTI_SZ )
+{
+  vector<wchar_t> temp(size/sizeof(wchar_t));
+
+  if ( RegQueryValueExW(
+      your_key, // HKEY
+      TEXT("ValueName"),
+      NULL,
+      NULL,
+      reinterpret_cast<LPBYTE>(&temp[0]),
+      &size ) != ERROR_SUCCESS )
+  return;
+
+  size_t index = 0;
+  size_t len = wcslen( &temp[0] );
+  while ( len > 0 )
+  {
+    target.push_back(&temp[index]);
+    index += len + 1;
+    len = wcslen( &temp[index] );
+  }
+}
+#endif
+
+/**
+*/
 void SlideSaver::setDefaults()
 {
 	state.slideDuration = DEF_SLIDE_DURATION;
+	state.transitionDuration = DEF_TRANS_DURATION;
+	state.slidePaths.push_back( IMAGE_PATH );
+
 #if 0
 	dCyclones = 1;
-	dParticles = 400;
-	dSize = 7;
-	dComplexity = 3;
 	dSpeed = 10;
 	dStretch = TRUE;
 	dShowCurves = FALSE;
 #endif
 }
 
+/**
+*/
 void SlideSaver::readRegistry()
 {
 	LONG result;
 	HKEY skey;
-//	DWORD valtype, valsize, val;
+	DWORD valtype, valsize, val;
+	TCHAR cval[256] = {0};
 
 	setDefaults();
 
-	result = RegOpenKeyEx(HKEY_CURRENT_USER, registryPath, 0, KEY_READ, &skey);
+	result = RegOpenKeyEx(HKEY_CURRENT_USER, state.registryPath, 0, KEY_READ, &skey);
 	if(result != ERROR_SUCCESS)
 		return;
 
-#if 0
 	valsize=sizeof(val);
-	result = RegQueryValueEx(skey, "Cyclones", 0, &valtype, (LPBYTE)&val, &valsize);
+	result = RegQueryValueExA(skey, "slide_dur", 0, &valtype, (LPBYTE)&val, &valsize);
 	if(result == ERROR_SUCCESS)
-		dCyclones = val;
+		state.slideDuration = val;
+	result = RegQueryValueExA(skey, "trans_dur", 0, &valtype, (LPBYTE)&val, &valsize);
+	if(result == ERROR_SUCCESS)
+		state.transitionDuration = val;
+
+	valsize = 256*sizeof(TCHAR);
+	result = RegQueryValueEx(skey, _T("slide_path"), 0, &valtype, (LPBYTE)&cval, &valsize);
+	if(result == ERROR_SUCCESS){
+		state.slidePaths.clear();
+		state.slidePaths.push_back( cval );
+	}
+#if 0
 	result = RegQueryValueEx(skey, "Particles", 0, &valtype, (LPBYTE)&val, &valsize);
 	if(result == ERROR_SUCCESS)
 		dParticles = val;
-	result = RegQueryValueEx(skey, "Size", 0, &valtype, (LPBYTE)&val, &valsize);
-	if(result == ERROR_SUCCESS)
-		dSize = val;
-	result = RegQueryValueEx(skey, "Complexity", 0, &valtype, (LPBYTE)&val, &valsize);
-	if(result == ERROR_SUCCESS)
-		dComplexity = val;
-	result = RegQueryValueEx(skey, "Speed", 0, &valtype, (LPBYTE)&val, &valsize);
-	if(result == ERROR_SUCCESS)
-		dSpeed = val;
-	result = RegQueryValueEx(skey, "Stretch", 0, &valtype, (LPBYTE)&val, &valsize);
-	if(result == ERROR_SUCCESS)
-		dStretch = val;
-	result = RegQueryValueEx(skey, "ShowCurves", 0, &valtype, (LPBYTE)&val, &valsize);
-	if(result == ERROR_SUCCESS)
-		dShowCurves = val;
-	result = RegQueryValueEx(skey, "FrameRateLimit", 0, &valtype, (LPBYTE)&val, &valsize);
-	if(result == ERROR_SUCCESS)
-		dFrameRateLimit = val;
 #endif
 	RegCloseKey(skey);
 }
 
+/**
+*/
 void SlideSaver::writeRegistry()
 {
-#if 0
 	LONG result;
 	HKEY skey;
 	DWORD val, disp;
 
-	result = RegCreateKeyEx(HKEY_CURRENT_USER, registryPath, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &skey, &disp);
+	result = RegCreateKeyEx(HKEY_CURRENT_USER, state.registryPath, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &skey, &disp);
 	if(result != ERROR_SUCCESS)
 		return;
-	val = dCyclones;
-	RegSetValueEx(skey, "Cyclones", 0, REG_DWORD, (CONST BYTE*)&val, sizeof(val));
+	val = state.slideDuration;
+	RegSetValueExA(skey, "slide_dur", 0, REG_DWORD, (CONST BYTE*)&val, sizeof(val));
+	val = state.transitionDuration;
+	RegSetValueExA(skey, "trans_dur", 0, REG_DWORD, (CONST BYTE*)&val, sizeof(val));
+
+	RegSetValueEx(skey, _T("slide_path"), 0, REG_SZ, (CONST BYTE*)state.slidePaths[0].c_str(),
+		state.slidePaths[0].length()*sizeof(TCHAR));
+#if 0
 	val = dParticles;
 	RegSetValueEx(skey, "Particles", 0, REG_DWORD, (CONST BYTE*)&val, sizeof(val));
 	val = dSize;
-	RegSetValueEx(skey, "Size", 0, REG_DWORD, (CONST BYTE*)&val, sizeof(val));
-	val = dComplexity;
-	RegSetValueEx(skey, "Complexity", 0, REG_DWORD, (CONST BYTE*)&val, sizeof(val));
-	val = dSpeed;
-	RegSetValueEx(skey, "Speed", 0, REG_DWORD, (CONST BYTE*)&val, sizeof(val));
-	val = dStretch;
-	RegSetValueEx(skey, "Stretch", 0, REG_DWORD, (CONST BYTE*)&val, sizeof(val));
-	val = dShowCurves;
-	RegSetValueEx(skey, "ShowCurves", 0, REG_DWORD, (CONST BYTE*)&val, sizeof(val));
-	val = dFrameRateLimit;
-	RegSetValueEx(skey, "FrameRateLimit", 0, REG_DWORD, (CONST BYTE*)&val, sizeof(val));
-	RegCloseKey(skey);
 #endif
+	RegCloseKey(skey);
 }
 
+/**
+*/
 void SlideSaver::initControls(HWND hDlg)
 {
-	char cval[32];
+	TCHAR cval[32];
 
-	SendDlgItemMessage(hDlg, IDC_DISPTIME, TBM_SETRANGE, 0, LPARAM(MAKELONG(DWORD(1), DWORD(120))));
+	SendDlgItemMessage(hDlg, IDC_DISPTIME, TBM_SETRANGE, 0, LPARAM(MAKELONG(DWORD(2), DWORD(120))));
 	SendDlgItemMessage(hDlg, IDC_DISPTIME, TBM_SETPOS, 1, LPARAM(state.slideDuration));
 	SendDlgItemMessage(hDlg, IDC_DISPTIME, TBM_SETLINESIZE, 0, LPARAM(1));
 	SendDlgItemMessage(hDlg, IDC_DISPTIME, TBM_SETPAGESIZE, 0, LPARAM(2));
-	sprintf(cval, "%d Seconds", state.slideDuration);
+	SendDlgItemMessage(hDlg, IDC_DISPTIME, TBM_SETTICFREQ, 10, 0);
+	_stprintf_s(cval, 32, _T("%d Seconds"), state.slideDuration);
 	SendDlgItemMessage(hDlg, IDC_DISPTIME_TEXT, WM_SETTEXT, 0, LPARAM(cval));
 
+	SendDlgItemMessage(hDlg, IDC_DIR_LIST, LB_ADDSTRING, 0, LPARAM(state.slidePaths[0].c_str()));
 #if 0
 	char cval[16];
 
@@ -341,23 +388,22 @@ void SlideSaver::initControls(HWND hDlg)
 */
 BOOL SlideSaver::saverConfigureDialog(HWND hDlg, UINT msg, WPARAM wpm, LPARAM lpm)
 {
+	int ival;
+	TCHAR cval[256] = {0};
+
 	switch(msg) {
 	case WM_INITDIALOG:
-//		InitCommonControls();
 		readRegistry();
 		initControls(hDlg);
 		return TRUE;
 	case WM_COMMAND:
 		switch(LOWORD(wpm)) {
 		case IDOK:
+			state.slideDuration = SendDlgItemMessage(hDlg, IDC_DISPTIME, TBM_GETPOS, 0, 0);
 #if 0
+			SendDlgItemMessage(hDlg, IDC_DIR_LIST, LB_GETTEXT, 0, LPARAM(cval));
+
 			dCyclones = SendDlgItemMessage(hdlg, CYCLONES, UDM_GETPOS, 0, 0);
-			dParticles = SendDlgItemMessage(hdlg, PARTICLES, UDM_GETPOS, 0, 0);
-			dSize = SendDlgItemMessage(hdlg, PARTICLESIZE, TBM_GETPOS, 0, 0);
-			dComplexity = SendDlgItemMessage(hdlg, COMPLEXITY, TBM_GETPOS, 0, 0);
-			dSpeed = SendDlgItemMessage(hdlg, SPEED, TBM_GETPOS, 0, 0);
-			dStretch = (IsDlgButtonChecked(hdlg, STRETCH) == BST_CHECKED);
-			dShowCurves = (IsDlgButtonChecked(hdlg, SHOWCURVES) == BST_CHECKED);
 			dFrameRateLimit = SendDlgItemMessage(hdlg, FRAMERATELIMIT, TBM_GETPOS, 0, 0);
 #endif
 			writeRegistry();
@@ -370,6 +416,14 @@ BOOL SlideSaver::saverConfigureDialog(HWND hDlg, UINT msg, WPARAM wpm, LPARAM lp
 			initControls(hDlg);
 			break;
 //		case IDC_ABOUT:
+		}
+		return TRUE;
+	case WM_HSCROLL:
+		if (HWND(lpm) == GetDlgItem(hDlg, IDC_DISPTIME)) {
+			ival = SendDlgItemMessage(hDlg, IDC_DISPTIME, TBM_GETPOS, 0, 0);
+//			ival = (ival / 5) * 5;
+			_stprintf_s(cval, 32, _T("%d Seconds"), ival);
+			SendDlgItemMessage(hDlg, IDC_DISPTIME_TEXT, WM_SETTEXT, 0, LPARAM(cval));
 		}
 		return TRUE;
 	}
