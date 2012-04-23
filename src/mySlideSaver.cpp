@@ -31,6 +31,9 @@ SlideSaver::SlideSaver()
 	// some 
 	state.registryPath = REGISTRY_PATH;
 
+	sql = new SQLite();
+	db_init();
+
 //	state.slidePaths.resize(0);
 //	state.slidePaths.clear();
 }
@@ -41,6 +44,26 @@ SlideSaver::~SlideSaver()
 {
 	if (slideFactory)
 		delete slideFactory;
+	if (sql)
+		sql->close();
+}
+
+/**
+*/
+void SlideSaver::db_init()
+{
+	if (sql->open("myslides.db") == SQLITE_OK) {
+		sql->exec("create table if not exists images("
+			"id integer primary key"
+			",filepath text"
+			",filedate datetime"
+			",active boolean"
+			")");
+//		if (sql->error()) { sql->error_str(); }
+
+		sql->exec("create index if not exists active on images(active)");
+//		if (sql->error()) { sql->error_str(); }
+	}
 }
 
 /**
@@ -133,7 +156,7 @@ void SlideSaver::initSaver()
 //	writeRegistry();
 
 	// if in preview mode, do some things a bit different
-	if (window.init.isPreview) {
+	if (app.isPreview) {
 		state.slideDuration = DEF_PREVIEW_DURATION;
 	}
 
@@ -146,7 +169,7 @@ void SlideSaver::initSaver()
 
 #ifndef DRAWBOX
 	int limit = 0;
-	if (window.init.isPreview)
+	if (app.isPreview)
 		limit = 5;
 
 	slideFactory = new ImageFactory(&state.slidePaths[0],

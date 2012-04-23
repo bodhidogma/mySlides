@@ -100,7 +100,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 AppWindow::AppWindow()
 {
 	memset(&window,0,sizeof(_Window));
-	app = NULL;
+	memset(&app,0,sizeof(Application));
 
 	window.init.width = 320;
 	window.init.height = 240;
@@ -110,19 +110,45 @@ AppWindow::AppWindow()
 
 AppWindow::~AppWindow()
 {
-	if (app) delete app;
+	if (this->app.dispRect)
+		delete(this->app.dispRect);
+//		free(this->app.dispRect);
+}
+
+BOOL CALLBACK myMonInfo(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData)
+{
+//	MONITORINFO mi; memset(&mi, 0, sizeof(MONITORINFO));
+//	mi.cbSize = sizeof(MONITORINFO); GetMonitorInfo(hMonitor, &mi);
+	Application *app = (Application*)dwData;
+
+	memcpy( &app->dispRect[ app->dispCnt++ ], lprcMonitor, sizeof(RECT) ); 	
+	return TRUE;
 }
 
 /**
 */
 int AppWindow::startApp(HWND hParent, HINSTANCE hInstance, int nCmdShow)
 {
+	// reset App data
+	this->app.hInstance = hInstance;
+
+	this->app.dispCnt = GetSystemMetrics(SM_CMONITORS);
+//	this->app.dispRect = (RECT*)malloc(this->app.dispCnt * sizeof(RECT));
+	this->app.dispRect = new RECT[this->app.dispCnt];
+	this->app.dispCnt = 0;
+
+	EnumDisplayMonitors(NULL,NULL,myMonInfo, (LPARAM)&this->app);
+
+//	DISPLAY_DEVICE ddev = {0}; ddev.cb = sizeof(DISPLAY_DEVICE);
+//	x=0; while (EnumDisplayDevices(NULL, x++, &ddev, NULL));
+
 	// Register && create window instance:
-	if (registerWindow(hInstance) 
-		&& createWindow(hParent, hInstance, nCmdShow))
-	{
-		// run message pump
-		return messagePump();
+	if (registerWindowCB(hInstance)) {
+		if (createWindow(hParent, hInstance, nCmdShow, &this->app.dispRect[this->app.dispCnt-1]))
+		{
+			// run message pump
+			return messagePump();
+		}
 	}
 	return FALSE;
 }
@@ -142,20 +168,14 @@ int AppWindow::openConfigBox(HWND hParent, HINSTANCE inst)
 
 /**
 */
-BOOL AppWindow::registerWindow(HINSTANCE hInstance)
+BOOL AppWindow::registerWindowCB(HINSTANCE hInstance)
 {
 	WNDCLASSEX wcex = {0};
 
-	// no associated app for this window
-	if (this->app == NULL) {
-		this->app = new Application;
-	}
-
-	this->app->hInstance = hInstance;
-	LoadString(hInstance, IDC_MYSLIDES, this->app->className, MAX_LOADSTRING);
+	LoadString(hInstance, IDC_MYSLIDES, this->app.className, MAX_LOADSTRING);
 	LoadString(hInstance, IDS_APP_TITLE, this->window.init.title, MAX_LOADSTRING);
 
-	if (this->window.init.isFullScreen) {
+	if (this->app.isFullScreen) {
 		wcex.hCursor = 0;
 	}
 	else {
@@ -174,12 +194,12 @@ BOOL AppWindow::registerWindow(HINSTANCE hInstance)
 //	wcex.hbrBackground	= (HBRUSH)(COLOR_WINDOW+1);				// default BG color
 	wcex.hbrBackground	= HBRUSH(GetStockObject(BLACK_BRUSH));	// default BG color
 //	wcex.hbrBackground	= NULL;
-	wcex.lpszClassName	= this->app->className;
+	wcex.lpszClassName	= this->app.className;
 	wcex.lpszMenuName	= NULL;
 //	wcex.hIconSm		= LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
 	// look for another app instance and switch to it
-	HWND hOther = FindWindow(this->app->className, this->window.init.title);
+	HWND hOther = FindWindow(this->app.className, this->window.init.title);
 	if (hOther && IsWindow(hOther)) {
 		SetForegroundWindow(hOther);
 		return FALSE;
@@ -195,13 +215,13 @@ BOOL AppWindow::registerWindow(HINSTANCE hInstance)
 
 /**
 */
-BOOL AppWindow::createWindow(HWND hParent, HINSTANCE hInstance, int nCmdShow)
+BOOL AppWindow::createWindow(HWND hParent, HINSTANCE hInstance, int nCmdShow, LPRECT dRect)
 {
 	UINT exStyle = WS_EX_APPWINDOW;
 	UINT style = WS_OVERLAPPEDWINDOW;
 
-	int left, top, width, height;
-	left = top = width = height = 0;
+	RECT wRect = {0};
+//	int left, top, width, height; left = top = width = height = 0;
 
 	// if parent set, make sure not trying to do full screen
 	if (hParent && !IsWindow(hParent))
@@ -211,42 +231,39 @@ BOOL AppWindow::createWindow(HWND hParent, HINSTANCE hInstance, int nCmdShow)
 	if (hParent) {
 		RECT pRect;
 		GetClientRect(hParent, &pRect);
-		width = pRect.right;
-		height = pRect.bottom;
+		wRect.right = pRect.right;
+		wRect.bottom = pRect.bottom;
 		
 		style = WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN;
 		exStyle = 0;
-		window.init.isPreview = TRUE;
+		app.isPreview = TRUE;
 
 		// set different name for init.title
 		LoadString(hInstance, IDS_APP_TITLE_PVW, window.init.title, MAX_LOADSTRING);
 	}
 	// full screen
-	else if (window.init.isFullScreen) {
-		left = GetSystemMetrics(SM_XVIRTUALSCREEN);
-		top = GetSystemMetrics(SM_YVIRTUALSCREEN);
-		width = GetSystemMetrics(SM_CXVIRTUALSCREEN);
-		height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
-	
-		style = WS_POPUP | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
+	else if (app.isFullScreen) {
+		memcpy((void*)&wRect,(void*)dRect,sizeof(RECT));
+		style   = WS_POPUP | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
 		exStyle = WS_EX_TOPMOST;
 		hParent = HWND_DESKTOP;
 	}
 	// windowed
 	else {
-		width = this->window.init.width;
-		height = this->window.init.height;
+		wRect.right  = this->window.init.width;
+		wRect.bottom = this->window.init.height;
 	}
 	window.hParent = hParent;
 
 	// create the window
 	this->window.hWnd = ::CreateWindowEx(
 		exStyle,					// extended style
-		this->app->className,
+		this->app.className,
 		this->window.init.title,
 		style,						// window style
-		left, top,					// origin X,Y
-		width, height,				// width,height
+		wRect.left, wRect.top,		// origin X,Y
+		wRect.right-wRect.left,		// width
+		wRect.bottom-wRect.top,		// height
 		hParent,					// parent
 		NULL,						// menu
 		hInstance,					// window instance
@@ -256,7 +273,7 @@ BOOL AppWindow::createWindow(HWND hParent, HINSTANCE hInstance, int nCmdShow)
 	if (!this->window.hWnd)
 		return FALSE;
 
-	if (!this->window.init.isPreview)
+	if (!this->app.isPreview)
 		::SetForegroundWindow( this->window.hWnd );
 
 	// show and update window
@@ -335,11 +352,11 @@ LRESULT AppWindow::appWindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 	case WM_KEYDOWN:
 		break;
 	case WM_SETCURSOR:
-		if (!window.init.isPreview && window.init.isFullScreen)
+		if (!app.isPreview && app.isFullScreen)
 			SetCursor(NULL);		// clear cursor if full screen
 		break;
 	case WM_SYSCOMMAND:
-		if (!window.init.isPreview) {
+		if (!app.isPreview) {
 			switch (wParam) 
 			{
 			case SC_NEXTWINDOW:
@@ -347,7 +364,7 @@ LRESULT AppWindow::appWindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 			case SC_SCREENSAVE:
 				return FALSE;
 			case SC_MONITORPOWER:
-				if (lParam == 1 || lParam == 2 && window.init.isFullScreen)
+				if (lParam == 1 || lParam == 2 && app.isFullScreen)
 					window.isSuspended = 1;
 				break;
 			}

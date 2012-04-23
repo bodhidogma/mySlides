@@ -7,6 +7,7 @@
 #include "main_window.h"
 #include "ImageFactory.h"
 #include "rsTimer.h"
+#include "cSQLite.h"
 
 struct _State {
 	BOOL drawOK;
@@ -48,10 +49,14 @@ protected:
 	BOOL saverConfigureDialog(HWND hDlg, UINT msg, WPARAM wpm, LPARAM lpm);
 
 private:
+	SQLite *sql;
+
 	void draw();
 	void drawBox();
 
 	ImageFactory *slideFactory;
+
+	void db_init();
 };
 
 #endif
