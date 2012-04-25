@@ -27,6 +27,7 @@
 #include <malloc.h>
 #include <memory.h>
 #include <tchar.h>
+#include <process.h>
 
 // CPP RunTime Header Files
 #include <iostream>
@@ -47,6 +48,7 @@ using namespace std;
 // Additional headers
 #include "Resource.h"
 #include "FreeImage.h"
+#include "sqlite3.h"
 
 // common #defines
 #define MAX_LOADSTRING 100

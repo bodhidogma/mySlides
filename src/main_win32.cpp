@@ -12,6 +12,8 @@
 BOOL checkPassword(HWND hwnd);
 void changePassword(HWND hwnd);
 
+int startApp(HWND hParent, HINSTANCE hInstance, int mode);
+
 /**
 */
 int APIENTRY _tWinMain(HINSTANCE hInstance,
@@ -85,11 +87,78 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 		ret = mySaver->openConfigBox(hParent, hInstance);
 		break;
 	default:	// open window and start msg pumps
-		ret = mySaver->startApp(hParent, hInstance, nCmdShow);
+//		ret = mySaver->startApp(hParent, hInstance, nCmdShow);
+		ret = startApp(hParent, hInstance, 0);
 	}
 	delete mySaver;
 
 	return ret;
+}
+
+// --------------------------------------------------------------
+
+HANDLE hRunMutex;
+
+unsigned __stdcall FileScanProc(void *pData)
+{
+	unsigned f=0;
+	do {
+		++f;
+		Sleep(1);
+	}
+//	while (f<5);
+	while ( WaitForSingleObject( hRunMutex, 15L ) == WAIT_TIMEOUT );
+	return f;
+}
+
+unsigned __stdcall SaverProc(void *pData)
+{
+	unsigned s=0;
+	do {
+		Sleep( ++s );
+	}
+//	while (s<5);
+	while ( WaitForSingleObject( hRunMutex, 15L ) == WAIT_TIMEOUT );
+	return s;
+}
+
+int startApp(HWND hParent, HINSTANCE hInstance, int mode)
+{
+	HANDLE hTh[2] = {0};
+	unsigned thId[2] = {0};
+	int tc = 0;
+
+	hRunMutex = CreateMutex(NULL, TRUE, NULL);	// Set
+
+	if ((hTh[tc] = (HANDLE)_beginthreadex( NULL, 0, FileScanProc, NULL, 0, &thId[tc])) == 0)
+	{
+		tc = -1;	// error
+	}
+	tc++;
+	if ((hTh[tc] = (HANDLE)_beginthreadex( NULL, 0, SaverProc, NULL, 0, &thId[tc])) == 0)
+	{
+		tc = -1;	// error
+	}
+	tc++;
+//	ResumeThread( hTh[0] );
+//	ResumeThread( hTh[1] );
+
+	Sleep(1000);	// get busy
+
+	ReleaseMutex(hRunMutex);							// terminate threads
+	WaitForMultipleObjects( tc, hTh, TRUE, INFINITE );	// wait for all threads to close
+
+	// threads completed, clean up
+	DWORD dwExit;
+	while (tc>0)
+	{
+		GetExitCodeThread( hTh[--tc], &dwExit );
+		CloseHandle( hTh[tc] );
+		dwExit = 0;
+	}
+	CloseHandle(hRunMutex);
+
+	return 0;
 }
 
 // --------------------------------------------------------------
