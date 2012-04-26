@@ -43,14 +43,12 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	std::ofstream outfile;
 	outfile.open("c:\\tmp\\cmdline"); outfile<<"cmd="<< GetCommandLineA() <<std::endl; outfile.close();
 #endif
-	SlideSaver *mySaver = new SlideSaver();
 	InitParams ip = {0};
 
 	int ret = 0;
 	LPWSTR *szArglist;
 	int nArgs;
 	int i;
-	HWND hParent = HWND_DESKTOP;
 
 	ip.hParent = HWND_DESKTOP;
 	ip.hInstance = hInstance;
@@ -66,9 +64,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 		}
 		// saver settings dialog
 		else if (!_wcsnicmp(L"/c", szArglist[i],2)) {
-			hParent = GetForegroundWindow();
-			mySaver->setParent(hParent);
-			ip.hParent = hParent;
+			ip.hParent = GetForegroundWindow();
 			ip.mode = CFG_DIALOG;
 			ret = 0;
 			break;
@@ -76,9 +72,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 		// open preview window
 		else if (!_wcsnicmp(L"/p", szArglist[i],2)) {
 			if ((i+1)<nArgs) {
-				hParent = (HWND)_wtoi(szArglist[i+1]);
-				mySaver->setParent(hParent);
-				ip.hParent = hParent;
+				ip.hParent = (HWND)_wtoi(szArglist[i+1]);
 				ip.mode = PREVIEW;
 			}
 			else 
@@ -87,13 +81,11 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 		}
 		// start saver
 		else if (!_wcsnicmp(L"/s", szArglist[i],2)) {
-			mySaver->setFullScreen(TRUE);
 			ip.mode = FULLSCREEN; 
 			break;
 		}
 		// windowed saver (debugging)
 		else if (!wcsncmp(L"/w", szArglist[i],2)) {
-			mySaver->setSize(640,480);
 			ip.mode = WINDOWED;
 			ip.size.right = 640;
 			ip.size.bottom = 480;
@@ -102,19 +94,9 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	}
 	LocalFree(szArglist);
 
-	switch (ret)
-	{
-	case -1:	// some errors
-		break;
-	case 0:		// open configure dialog
-		ret = mySaver->openConfigBox(hParent, hInstance);
-		break;
-	default:	// open window and start msg pumps
-//		ret = mySaver->startApp(hParent, hInstance, nCmdShow);
-		if (ip.mode != NONE) { ret = startApp( &ip ); }
+	if (ip.mode != NONE) {
+		ret = startApp( &ip );
 	}
-	delete mySaver;
-
 	return ret;
 }
 
@@ -148,21 +130,18 @@ unsigned __stdcall SaverProc(void *pData)
 int startApp(InitParams *ip)
 {
 	SlideSaver *mySaver = {0};
-	if (ip->mode && (mySaver = new SlideSaver()))
-	{
+	if (ip->mode && (mySaver = new SlideSaver())) {
 		mySaver->setParent( ip->hParent );
+		// sequence matters here!
 		switch ( ip->mode ) {
+		case CFG_DIALOG:
+			mySaver->openConfigBox( ip->hParent, ip->hInstance );
+			break;
 		case FULLSCREEN:
 			mySaver->setFullScreen( TRUE );
-			break;
 		case WINDOWED:
 			mySaver->setSize( ip->size.right, ip->size.right );
-			break;
-		}
-		if ( ip->mode == CFG_DIALOG ) {
-			mySaver->openConfigBox( ip->hParent, ip->hInstance );
-		}
-		else {
+		default:
 			mySaver->startApp( ip->hParent, ip->hInstance, ip->nCmdShow );
 		}
 		delete mySaver;
