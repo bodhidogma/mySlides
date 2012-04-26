@@ -12,7 +12,23 @@
 BOOL checkPassword(HWND hwnd);
 void changePassword(HWND hwnd);
 
-int startApp(HWND hParent, HINSTANCE hInstance, int mode);
+enum appMode {
+	NONE = 0,
+	CFG_DIALOG,
+	PREVIEW,
+	FULLSCREEN,
+	WINDOWED
+};
+
+struct InitParams {
+	HWND		hParent;
+	HINSTANCE	hInstance;
+	int			nCmdShow;
+	appMode		mode;
+	RECT		size;
+};
+
+int startApp(InitParams *ip);
 
 /**
 */
@@ -27,19 +43,18 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	std::ofstream outfile;
 	outfile.open("c:\\tmp\\cmdline"); outfile<<"cmd="<< GetCommandLineA() <<std::endl; outfile.close();
 #endif
+	SlideSaver *mySaver = new SlideSaver();
+	InitParams ip = {0};
 
-	//AppWindow *mySaver = {0};
-	SlideSaver *mySaver = {0};
-
-	mySaver = new SlideSaver();
 	int ret = 0;
 	LPWSTR *szArglist;
 	int nArgs;
 	int i;
 	HWND hParent = HWND_DESKTOP;
 
-	if (!mySaver)
-		return -1;
+	ip.hParent = HWND_DESKTOP;
+	ip.hInstance = hInstance;
+	ip.nCmdShow = nCmdShow;
 
 	szArglist = CommandLineToArgvW(GetCommandLineW(), &nArgs);
 	for (i=1; szArglist && i<nArgs; i++) {
@@ -53,6 +68,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 		else if (!_wcsnicmp(L"/c", szArglist[i],2)) {
 			hParent = GetForegroundWindow();
 			mySaver->setParent(hParent);
+			ip.hParent = hParent;
+			ip.mode = CFG_DIALOG;
 			ret = 0;
 			break;
 		}
@@ -61,6 +78,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			if ((i+1)<nArgs) {
 				hParent = (HWND)_wtoi(szArglist[i+1]);
 				mySaver->setParent(hParent);
+				ip.hParent = hParent;
+				ip.mode = PREVIEW;
 			}
 			else 
 				ret = -1;
@@ -69,11 +88,15 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 		// start saver
 		else if (!_wcsnicmp(L"/s", szArglist[i],2)) {
 			mySaver->setFullScreen(TRUE);
+			ip.mode = FULLSCREEN; 
 			break;
 		}
 		// windowed saver (debugging)
 		else if (!wcsncmp(L"/w", szArglist[i],2)) {
 			mySaver->setSize(640,480);
+			ip.mode = WINDOWED;
+			ip.size.right = 640;
+			ip.size.bottom = 480;
 			break;
 		}
 	}
@@ -88,7 +111,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 		break;
 	default:	// open window and start msg pumps
 //		ret = mySaver->startApp(hParent, hInstance, nCmdShow);
-		ret = startApp(hParent, hInstance, 0);
+		if (ip.mode != NONE) { ret = startApp( &ip ); }
 	}
 	delete mySaver;
 
@@ -122,14 +145,37 @@ unsigned __stdcall SaverProc(void *pData)
 	return s;
 }
 
-int startApp(HWND hParent, HINSTANCE hInstance, int mode)
+int startApp(InitParams *ip)
 {
+	SlideSaver *mySaver = {0};
+	if (ip->mode && (mySaver = new SlideSaver()))
+	{
+		mySaver->setParent( ip->hParent );
+		switch ( ip->mode ) {
+		case FULLSCREEN:
+			mySaver->setFullScreen( TRUE );
+			break;
+		case WINDOWED:
+			mySaver->setSize( ip->size.right, ip->size.right );
+			break;
+		}
+		if ( ip->mode == CFG_DIALOG ) {
+			mySaver->openConfigBox( ip->hParent, ip->hInstance );
+		}
+		else {
+			mySaver->startApp( ip->hParent, ip->hInstance, ip->nCmdShow );
+		}
+		delete mySaver;
+	}
+	return 0;
+
 	HANDLE hTh[2] = {0};
 	unsigned thId[2] = {0};
 	int tc = 0;
 
-	hRunMutex = CreateMutex(NULL, TRUE, NULL);	// Set
 
+
+	hRunMutex = CreateMutex(NULL, TRUE, NULL);	// Set
 	if ((hTh[tc] = (HANDLE)_beginthreadex( NULL, 0, FileScanProc, NULL, 0, &thId[tc])) == 0)
 	{
 		tc = -1;	// error
