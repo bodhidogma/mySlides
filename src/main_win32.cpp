@@ -5,6 +5,7 @@
 #include "Resource.h"
 #include "mySlideSaver.h"
 //#include "main_window.h"
+#include "cSaverDB.h"
 
 #include "rsTimer.h"
 #include <fstream>
@@ -104,7 +105,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 HANDLE hRunMutex;
 
-unsigned __stdcall FileScanProc(void *pData)
+unsigned __stdcall SQLiteProc(void *pData)
 {
 	unsigned f=0;
 	do {
@@ -114,6 +115,79 @@ unsigned __stdcall FileScanProc(void *pData)
 //	while (f<5);
 	while ( WaitForSingleObject( hRunMutex, 15L ) == WAIT_TIMEOUT );
 	return f;
+}
+
+
+int loadSlides(cSaverDB *db, tstring basePath, const TCHAR *fileExt, int limit)
+{
+	int cnt = 0;
+	int newLimit = 0;
+
+	if (limit < 0) return 0;
+
+	// enumerate directory contents
+	if ( basePath.end()[ -1 ] != '\\' ) basePath += '\\';
+	WIN32_FIND_DATA fd;
+	HANDLE h = FindFirstFile( (basePath + fileExt).c_str(), &fd );
+	if ( h != INVALID_HANDLE_VALUE ) {
+		db->exec("BEGIN TRANSACTION");
+		bool done = false;
+		while ( !done ) {
+			if ( ( fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) == 0 ){
+//				slideNames->push_back( basePath + fd.cFileName );
+				db->InsertFileExec( basePath.c_str(), &fd );
+				cnt++;
+			}
+			if (limit && cnt == limit)
+				done = TRUE;
+			else 
+				done = !FindNextFile( h, &fd );
+		}
+		db->exec("END TRANSACTION");
+		FindClose( h );
+	}
+//	if (limit && cnt == limit) return cnt;
+
+	// recurse directories
+	h = FindFirstFile( ( basePath + _T("*") ).c_str(), &fd );
+	if ( h != INVALID_HANDLE_VALUE ) {
+		bool done = false;
+		while ( !done ) {
+			const tstring name = fd.cFileName;
+			if ( name != _T(".") && name != _T("..") )
+			{
+				if ( fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY )
+				{
+					if (limit) newLimit = limit-cnt;
+					cnt += loadSlides( db, basePath + fd.cFileName, fileExt, newLimit);
+				}
+			}
+			if (limit && cnt == limit)
+				done = TRUE;
+			else
+				done = !FindNextFile( h, &fd );
+		}
+		FindClose( h );
+	}
+	return cnt;
+}
+
+#define IMAGE_EXTENSION _T("*.jpg")
+
+unsigned __stdcall FileScanProc(void *pData)
+{
+	unsigned ret=0;
+	cSaverDB db;
+	vector<tstring> slideNames;
+
+	db.open();
+
+	db.InsertFilePrep();
+	int cnt = loadSlides( &db, IMAGE_PATH, IMAGE_EXTENSION, 0 );
+	db.InsertFileDone();
+
+	db.close();
+	return ret;
 }
 
 unsigned __stdcall SaverProc(void *pData)
@@ -129,6 +203,7 @@ unsigned __stdcall SaverProc(void *pData)
 
 int startApp(InitParams *ip)
 {
+#if 0
 	SlideSaver *mySaver = {0};
 	if (ip->mode && (mySaver = new SlideSaver())) {
 		mySaver->setParent( ip->hParent );
@@ -147,14 +222,12 @@ int startApp(InitParams *ip)
 		delete mySaver;
 	}
 	return 0;
-
+#endif
 	HANDLE hTh[2] = {0};
 	unsigned thId[2] = {0};
 	int tc = 0;
 
-
-
-	hRunMutex = CreateMutex(NULL, TRUE, NULL);	// Set
+	hRunMutex = CreateMutex(NULL, TRUE, NULL);	// Set 
 	if ((hTh[tc] = (HANDLE)_beginthreadex( NULL, 0, FileScanProc, NULL, 0, &thId[tc])) == 0)
 	{
 		tc = -1;	// error

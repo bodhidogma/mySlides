@@ -6,20 +6,6 @@
 
 //#define DRAW_BOX
 
-#define	DEF_PREVIEW_DURATION	5	// 5s
-#define	DEF_SLIDE_DURATION		10	// 10s
-#define DEF_TRANS_DURATION		2	// 2s
-#define REGISTRY_PATH			_T("Software\\QuedaNet\\mySlides")
-
-#define MAX_SLIDE_FPS			30
-#define MIN_SLIDE_FPS			5
-
-//#define IMAGE_PATH	_T("images")
-//#define IMAGE_PATH	_T("d:\\data\\pictures\\dcim-jpeg")
-//#define IMAGE_PATH	_T("z:\\media\\photos")
-#define IMAGE_PATH	_T("z:\\media\\photos\\2011")
-
-//#define IMAGE_PATH	_T("z:\\pmcavoy\\pictures\\myinet\\2010\\October")
 
 /**
 */
@@ -31,7 +17,7 @@ SlideSaver::SlideSaver()
 	// some 
 	state.registryPath = REGISTRY_PATH;
 
-	sql = new SQLite();
+//	sql = new SQLite();
 	db_init();
 
 //	state.slidePaths.resize(0);
@@ -44,14 +30,14 @@ SlideSaver::~SlideSaver()
 {
 	if (slideFactory)
 		delete slideFactory;
-	if (sql)
-		sql->close();
+//	if (sql) sql->close();
 }
 
 /**
 */
 void SlideSaver::db_init()
 {
+#if 0
 	if (sql->open("myslides.db") == SQLITE_OK) {
 		sql->exec("create table if not exists images("
 			"id integer primary key"
@@ -64,6 +50,7 @@ void SlideSaver::db_init()
 		sql->exec("create index if not exists active on images(active)");
 //		if (sql->error()) { sql->error_str(); }
 	}
+#endif
 }
 
 /**

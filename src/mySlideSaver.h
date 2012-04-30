@@ -7,7 +7,22 @@
 #include "main_window.h"
 #include "ImageFactory.h"
 #include "rsTimer.h"
-#include "cSQLite.h"
+#include "cSaverDB.h"
+
+#define	DEF_PREVIEW_DURATION	5	// 5s
+#define	DEF_SLIDE_DURATION		10	// 10s
+#define DEF_TRANS_DURATION		2	// 2s
+#define REGISTRY_PATH			_T("Software\\QuedaNet\\mySlides")
+
+#define MAX_SLIDE_FPS			30
+#define MIN_SLIDE_FPS			5
+
+//#define IMAGE_PATH	_T("images")
+//#define IMAGE_PATH	_T("d:\\data\\pictures\\dcim-jpeg")
+//#define IMAGE_PATH	_T("z:\\media\\photos")
+#define IMAGE_PATH	_T("z:\\media\\photos\\2011")
+
+//#define IMAGE_PATH	_T("z:\\pmcavoy\\pictures\\myinet\\2010\\October")
 
 struct _State {
 	BOOL drawOK;
@@ -49,7 +64,7 @@ protected:
 	BOOL saverConfigureDialog(HWND hDlg, UINT msg, WPARAM wpm, LPARAM lpm);
 
 private:
-	SQLite *sql;
+//	cSaverDB *sql;
 
 	void draw();
 	void drawBox();

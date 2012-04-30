@@ -36,7 +36,7 @@
     <ClCompile Include="..\sqlite\sqlite3.c">
       <Filter>sqlite3</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\cSQLite.cpp">
+    <ClCompile Include="..\src\cSaverDB.cpp">
       <Filter>sqlite3</Filter>
     </ClCompile>
   </ItemGroup>
@@ -65,7 +65,7 @@
     <ClInclude Include="..\sqlite\sqlite3.h">
       <Filter>sqlite3</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\cSQLite.h">
+    <ClInclude Include="..\src\cSaverDB.h">
       <Filter>sqlite3</Filter>
     </ClInclude>
   </ItemGroup>
