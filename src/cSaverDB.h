@@ -24,7 +24,8 @@ public:
 	int InsertFileExec(const TCHAR *filebase, const WIN32_FIND_DATA *fd);
 	int InsertFileDone();
 
-	int ReadParam(char  *foo);
+	int ConfigRead(const TCHAR *key, TCHAR *val, int val_len);
+	int ConfigWrite(int update, const TCHAR *key, TCHAR *val);
 
 	int error()				{return rc;}
 	const char *error_str()	{return zErr;}

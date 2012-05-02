@@ -172,7 +172,7 @@ int loadSlides(cSaverDB *db, tstring basePath, const TCHAR *fileExt, int limit)
 	return cnt;
 }
 
-#define IMAGE_EXTENSION _T("*.jpg")
+#define IMAGE_EXT_JPG _T("*.jpg")
 
 unsigned __stdcall FileScanProc(void *pData)
 {
@@ -182,8 +182,11 @@ unsigned __stdcall FileScanProc(void *pData)
 
 	db.open();
 
+	db.ConfigWrite(0,_T("slide_dur"),_T("10"));
+	db.ConfigWrite(0,_T("image_path0"),_T("z:\\media\\photos\\2011"));
+
 	db.InsertFilePrep();
-	int cnt = loadSlides( &db, IMAGE_PATH, IMAGE_EXTENSION, 0 );
+	int cnt = loadSlides( &db, IMAGE_PATH, IMAGE_EXT_JPG, 0 );
 	db.InsertFileDone();
 
 	db.close();

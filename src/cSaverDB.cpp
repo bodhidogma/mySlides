@@ -32,15 +32,25 @@ int cSaverDB::open()
 	}
 	else if (rc == SQLITE_OK) {
 		if (exec("CREATE TABLE IF NOT EXISTS images("
-			"id INTEGER PRIMARY KEY"
-			",filebase TEXT"
-			",filename TEXT"
-			",filecreate INTEGER"
-			",filesize INTEGER"
-			",active BOOLEAN"
-			")") == SQLITE_OK
-			&& exec("CREATE INDEX IF NOT EXISTS active ON images(active)") == SQLITE_OK
-			&& exec("CREATE UNIQUE INDEX IF NOT EXISTS path ON images(filebase,filename)") == SQLITE_OK
+			"id INTEGER PRIMARY KEY,"
+			"filebase TEXT,"
+			"filename TEXT,"
+			"filecreate INTEGER,"
+			"filesize INTEGER,"
+			"active BOOLEAN,"
+			"UNIQUE(filebase,filename)"
+			");"
+//			"CREATE INDEX IF NOT EXISTS active ON images(active);"
+//			"CREATE UNIQUE INDEX IF NOT EXISTS path ON images(filebase,filename);"
+			"CREATE TABLE IF NOT EXISTS config("
+//			"key TEXT UNIQUE PRIMARY KEY ON CONFLICT REPLACE,"
+			"key TEXT UNIQUE PRIMARY KEY,"
+			"value TEXT"
+			");"
+//			"CREATE INDEX IF NOT EXISTS key ON config(key);"
+			) == SQLITE_OK
+//			&& exec("CREATE INDEX IF NOT EXISTS active ON images(active)") == SQLITE_OK
+//			&& exec("CREATE UNIQUE INDEX IF NOT EXISTS path ON images(filebase,filename)") == SQLITE_OK
 			) {
 			// success!
 			exec("PRAGMA synchronous = OFF");
@@ -70,7 +80,7 @@ int cSaverDB::exec(const char *sql)
 	if (!db) return SQLITE_ERROR;
 	sqlite3_free(zErr);
 #if 1
-	rc = sqlite3_exec(db, sql, NULL, NULL, &zErr);
+	return (rc = sqlite3_exec(db, sql, NULL, NULL, &zErr));
 #else
 	sqlite3_stmt* qry = NULL;
 	if ((rc = sqlite3_prepare_v2(db, sql, strlen(sql), &qry, NULL)) == SQLITE_OK) {
@@ -82,14 +92,17 @@ int cSaverDB::exec(const char *sql)
 	else {
 		sqlite3_errmsg(db);
 	}
-#endif
 	return (rc = sqlite3_errcode(db));
+#endif
 }
 
 /**
 */
 int cSaverDB::texec(const TCHAR *sql)
 {
+	if (sizeof(TCHAR) == sizeof(char)) {
+		return exec((char*)sql);
+	}
 	if (!db) return SQLITE_ERROR;
 	sqlite3_free(zErr);
 	sqlite3_stmt* qry = NULL;
@@ -169,6 +182,8 @@ int cSaverDB::InsertFileExec(const TCHAR *filebase, const WIN32_FIND_DATA *fd)
 	fd_date = (unsigned)(fd_date / WINDOWS_TICK - SEC_TO_UNIX_EPOCH);
 // select id,filename,filesize,datetime(filecreate, 'unixepoch') from images;
 
+	// need to check sizeof TCHAR for text16 usage
+
 	if ((rc=sqlite3_bind_text16(insFileQry, 1, filebase, _tcslen(filebase)*sizeof(TCHAR), SQLITE_STATIC)) == SQLITE_OK
 		&& (rc=sqlite3_bind_text16(insFileQry, 2, fd->cFileName, _tcslen(fd->cFileName)*sizeof(TCHAR), SQLITE_STATIC)) == SQLITE_OK
 		&& (rc=sqlite3_bind_int64(insFileQry, 3, fd_size)) == SQLITE_OK
@@ -197,10 +212,58 @@ int cSaverDB::InsertFileDone()
 	return 0;
 }
 
+/**
+*/
+int cSaverDB::ConfigRead(const TCHAR *key, TCHAR *val, int val_len)
+{
+	if (!db) return SQLITE_ERROR;
+	const TCHAR *query = _T("INSERT OR UPDATE INTO config(key,value) VALUES(?,?)");
+	sqlite3_stmt* cfgQuery = {0};
+
+	sqlite3_free(zErr);
+
+	if ((rc = sqlite3_prepare16_v2(db, query, _tcslen(query)*sizeof(TCHAR), &cfgQuery, NULL)) == SQLITE_OK) {
+//		exec("BEGIN TRANSACTION");
+	}
+	else {
+		sqlite3_errmsg(db);
+		return (rc = sqlite3_errcode(db));
+	}
+
+	if ((rc=sqlite3_bind_text16(insFileQry, 1, key, _tcslen(key)*sizeof(TCHAR), SQLITE_STATIC)) == SQLITE_OK
+	&& (rc=sqlite3_bind_text16(insFileQry, 2, val, _tcslen(val)*sizeof(TCHAR), SQLITE_STATIC)) == SQLITE_OK
+	) {
+		// success
+		rc = sqlite3_step(insFileQry);
+		rc = sqlite3_reset(insFileQry);
+	}
+	else {
+		sqlite3_errmsg(db);
+	}
+	return (rc = sqlite3_errcode(db));
+}
 
 /**
 */
-int cSaverDB::ReadParam(char *param)
+int cSaverDB::ConfigWrite(int update, const TCHAR *key, TCHAR *val)
 {
-	return 0;
+	if (!db) return SQLITE_ERROR;
+
+	wchar_t query[256] = {0};
+	wsprintf( query, L"INSERT %sINTO config (key,value) VALUES('%s','%s');",
+		(update ? L"OR REPLACE " : L""), key, val );
+#if 0
+	wstring query = _T("INSERT OR UPDATE INTO config (key,value) values(");
+	tstring query;
+	if (update)
+		query = _T("INSERT OR UPDATE INTO config (key,value) values(");
+	else
+		query = _T("INSERT INTO config (key,value) values('");
+	query += key;
+	query += _T("','");
+	query += val;
+	query += _T("')");
+	return texec( query.c_str() );
+#endif
+	return texec( query );
 }
