@@ -16,7 +16,7 @@ public:
 	int open();
 	int close();
 	int exec(const char *sql);
-	int texec(const TCHAR *sql);
+	int wexec(const wchar_t *sql);
 
 	int InsertFile(const TCHAR *filebase, const TCHAR *filename);
 
@@ -24,8 +24,8 @@ public:
 	int InsertFileExec(const TCHAR *filebase, const WIN32_FIND_DATA *fd);
 	int InsertFileDone();
 
-	int ConfigRead(const TCHAR *key, TCHAR *val, int val_len);
-	int ConfigWrite(int update, const TCHAR *key, TCHAR *val);
+	int ConfigRead(const wchar_t *key, wchar_t *val, int val_len);
+	int ConfigWrite(int update, const wchar_t *key, wchar_t *val);
 
 	int error()				{return rc;}
 	const char *error_str()	{return zErr;}

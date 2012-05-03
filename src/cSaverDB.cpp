@@ -48,14 +48,10 @@ int cSaverDB::open()
 			"value TEXT"
 			");"
 //			"CREATE INDEX IF NOT EXISTS key ON config(key);"
-			) == SQLITE_OK
-//			&& exec("CREATE INDEX IF NOT EXISTS active ON images(active)") == SQLITE_OK
-//			&& exec("CREATE UNIQUE INDEX IF NOT EXISTS path ON images(filebase,filename)") == SQLITE_OK
-			) {
-			// success!
-			exec("PRAGMA synchronous = OFF");
-		}
-		else {
+			"PRAGMA synchronous=OFF;"
+			"PRAGMA journal_mode=MEMORY;"
+			) != SQLITE_OK) {
+			// failure
 			sqlite3_errmsg(db);
 		}
 	}
@@ -98,16 +94,13 @@ int cSaverDB::exec(const char *sql)
 
 /**
 */
-int cSaverDB::texec(const TCHAR *sql)
+int cSaverDB::wexec(const wchar_t *sql)
 {
-	if (sizeof(TCHAR) == sizeof(char)) {
-		return exec((char*)sql);
-	}
 	if (!db) return SQLITE_ERROR;
 	sqlite3_free(zErr);
 	sqlite3_stmt* qry = NULL;
 
-	if ((rc = sqlite3_prepare16_v2(db, sql, _tcslen(sql)*sizeof(TCHAR), &qry, NULL)) == SQLITE_OK) {
+	if ((rc = sqlite3_prepare16_v2(db, sql, wcslen(sql)*sizeof(wchar_t), &qry, NULL)) == SQLITE_OK) {
 		rc = sqlite3_step(qry);
 		if (rc==SQLITE_DONE || rc==SQLITE_ROW) {
 			rc = sqlite3_finalize( qry );
@@ -131,7 +124,7 @@ int cSaverDB::InsertFile(const TCHAR *filebase, const TCHAR *filename)
 	query += filename;
 	query += _T("')");
 
-	texec( query.c_str() );
+	wexec( query.c_str() );
 
 	return rc;
 }
@@ -150,7 +143,6 @@ int cSaverDB::InsertFilePrep()
 	}
 
 	if ((rc = sqlite3_prepare16_v2(db, query, _tcslen(query)*sizeof(TCHAR), &insFileQry, NULL)) == SQLITE_OK) {
-		exec("PRAGMA journal_mode = MEMORY");
 //		exec("BEGIN TRANSACTION");
 	}
 	else {
@@ -206,7 +198,7 @@ int cSaverDB::InsertFileDone()
 	rc = sqlite3_finalize( insFileQry );
 
 //	exec("END TRANSACTION");
-	exec("PRAGMA journal_mode = DISK");
+//	exec("PRAGMA journal_mode = DISK");
 
 	insFileQry = 0;
 	return 0;
@@ -214,56 +206,43 @@ int cSaverDB::InsertFileDone()
 
 /**
 */
-int cSaverDB::ConfigRead(const TCHAR *key, TCHAR *val, int val_len)
+int cSaverDB::ConfigRead(const wchar_t *key, wchar_t *val, int val_len)
 {
 	if (!db) return SQLITE_ERROR;
-	const TCHAR *query = _T("INSERT OR UPDATE INTO config(key,value) VALUES(?,?)");
+	
 	sqlite3_stmt* cfgQuery = {0};
+	wchar_t query[256] = {0};
+	wchar_t *col_val = 0;
+	wsprintf( query, L"SELECT * FROM config WHERE key='%s'", key);
 
 	sqlite3_free(zErr);
-
-	if ((rc = sqlite3_prepare16_v2(db, query, _tcslen(query)*sizeof(TCHAR), &cfgQuery, NULL)) == SQLITE_OK) {
-//		exec("BEGIN TRANSACTION");
-	}
-	else {
+	if ((rc = sqlite3_prepare16_v2(db, query, wcslen(query)*sizeof(wchar_t), &cfgQuery, NULL)) != SQLITE_OK) {
 		sqlite3_errmsg(db);
 		return (rc = sqlite3_errcode(db));
 	}
-
-	if ((rc=sqlite3_bind_text16(insFileQry, 1, key, _tcslen(key)*sizeof(TCHAR), SQLITE_STATIC)) == SQLITE_OK
-	&& (rc=sqlite3_bind_text16(insFileQry, 2, val, _tcslen(val)*sizeof(TCHAR), SQLITE_STATIC)) == SQLITE_OK
-	) {
+	// only expect 1 row for a given key
+	if ((rc = sqlite3_step(cfgQuery)) == SQLITE_ROW)
+	{
 		// success
-		rc = sqlite3_step(insFileQry);
-		rc = sqlite3_reset(insFileQry);
+		int t = sqlite3_column_type(cfgQuery, 1);
+		col_val = (wchar_t*)sqlite3_column_text16(cfgQuery,1);
+		int l = wcslen(col_val)+1;
+
+		if (val_len < l) l = val_len;
+		memcpy(val, col_val, l*sizeof(wchar_t));
 	}
-	else {
-		sqlite3_errmsg(db);
-	}
+	rc = sqlite3_reset(cfgQuery);
 	return (rc = sqlite3_errcode(db));
 }
 
 /**
 */
-int cSaverDB::ConfigWrite(int update, const TCHAR *key, TCHAR *val)
+int cSaverDB::ConfigWrite(int update, const wchar_t *key, wchar_t *val)
 {
 	if (!db) return SQLITE_ERROR;
 
 	wchar_t query[256] = {0};
 	wsprintf( query, L"INSERT %sINTO config (key,value) VALUES('%s','%s');",
 		(update ? L"OR REPLACE " : L""), key, val );
-#if 0
-	wstring query = _T("INSERT OR UPDATE INTO config (key,value) values(");
-	tstring query;
-	if (update)
-		query = _T("INSERT OR UPDATE INTO config (key,value) values(");
-	else
-		query = _T("INSERT INTO config (key,value) values('");
-	query += key;
-	query += _T("','");
-	query += val;
-	query += _T("')");
-	return texec( query.c_str() );
-#endif
-	return texec( query );
+	return wexec( query );
 }

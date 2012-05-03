@@ -179,14 +179,17 @@ unsigned __stdcall FileScanProc(void *pData)
 	unsigned ret=0;
 	cSaverDB db;
 	vector<tstring> slideNames;
+	wchar_t val[256] = {0};
 
 	db.open();
 
 	db.ConfigWrite(0,_T("slide_dur"),_T("10"));
-	db.ConfigWrite(0,_T("image_path0"),_T("z:\\media\\photos\\2011"));
+	db.ConfigWrite(0,_T("image_path.0"),IMAGE_PATH);
+
+	db.ConfigRead(L"image_path.0", val, 256);
 
 	db.InsertFilePrep();
-	int cnt = loadSlides( &db, IMAGE_PATH, IMAGE_EXT_JPG, 0 );
+	int cnt = loadSlides( &db, val, IMAGE_EXT_JPG, 0 );
 	db.InsertFileDone();
 
 	db.close();
