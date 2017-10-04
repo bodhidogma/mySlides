@@ -69,7 +69,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /Yu"stdafx.h" /FD /GZ /c
-# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I ".." /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /Yu"stdafx.h" /FD /GZ /c
+# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "..\lib" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /Yu"stdafx.h" /FD /GZ /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
@@ -79,7 +79,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 FreeImage.lib opengl32.lib glu32.lib scrnsave.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /debug /machine:I386 /out:"../mySlides.exe" /pdbtype:sept /libpath:".."
+# ADD LINK32 opengl32.lib glu32.lib winmm.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /debug /machine:I386 /out:"../mySlides.scr" /pdbtype:sept /libpath:".."
 
 !ENDIF 
 
@@ -92,23 +92,23 @@ LINK32=link.exe
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
-SOURCE=..\Image.cpp
+SOURCE=..\src\Image.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\ImageFactory.cpp
+SOURCE=..\src\ImageFactory.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\mySlides_mswin.cpp
+SOURCE=..\src\main_win32.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\mySlideShow.cpp
+SOURCE=..\src\mySlideSaver.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\stdafx.cpp
+SOURCE=..\src\stdafx.cpp
 
 !IF  "$(CFG)" == "mySlides - Win32 Release"
 
@@ -125,23 +125,31 @@ SOURCE=..\stdafx.cpp
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
 # Begin Source File
 
-SOURCE=..\Image.h
+SOURCE=..\lib\FreeImage.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\ImageFactory.h
+SOURCE=..\src\Image.h
 # End Source File
 # Begin Source File
 
-SOURCE="..\mySlides.h"
+SOURCE=..\src\ImageFactory.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\mySlideShow.h
+SOURCE=..\src\main_window.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\StdAfx.h
+SOURCE=..\src\mySlideSaver.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\src\rsTimer.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\src\stdafx.h
 # End Source File
 # End Group
 # Begin Group "Resource Files"
@@ -149,20 +157,20 @@ SOURCE=..\StdAfx.h
 # PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
 # Begin Source File
 
-SOURCE="..\mySlides.ico"
+SOURCE=..\src\mySlides.ico
 # End Source File
 # Begin Source File
 
-SOURCE="..\mySlides.rc"
+SOURCE=..\src\mySlides.rc
 # End Source File
 # Begin Source File
 
-SOURCE=..\resource.h
+SOURCE=..\src\Resource.h
 # End Source File
 # End Group
 # Begin Source File
 
-SOURCE=..\README
+SOURCE=..\lib\FreeImage.lib
 # End Source File
 # End Target
 # End Project

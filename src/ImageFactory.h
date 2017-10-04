@@ -9,17 +9,17 @@
 class ImageFactory
 {
 public:
-	ImageFactory(TCHAR *basePath, int maxWidth, int maxHeight, int winWidth, int winHeight);
+	ImageFactory(tstring *basePath, int maxWidth, int maxHeight, int winWidth, int winHeight, int limit);
 	~ImageFactory();
 
 	void updateWinSize(int width, int height);
 
-	void nextSlide(int doFadeOut);
-	int  drawSlide();
-	void elapsedCheck( float sElapse, int nextSeconds );
+	void nextSlide(float fadeDur);
+	int  drawSlide(float FPS);
+	float elapsedCheck( float sElapse, int nextSeconds, float fadeDur );
 
 private:
-	void loadSlides(tstring basePath);
+	int loadSlides(tstring basePath, int limit);
 
 	tstring searchBase;
 	vector<tstring> slideNames;

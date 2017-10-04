@@ -9,10 +9,10 @@
 
 /**
 */
-ImageFactory::ImageFactory(TCHAR *basePath,
-	int theMaxWidth, int theMaxHeight, int theWinWidth, int theWinHeight)
+ImageFactory::ImageFactory(tstring *basePath,
+	int theMaxWidth, int theMaxHeight, int theWinWidth, int theWinHeight, int limit)
 {
-	searchBase = basePath;
+	searchBase = basePath->c_str();
 	currentName = 0;
 	theSlide = oldSlide = NULL;
 	sElapsed = 0;
@@ -24,8 +24,12 @@ ImageFactory::ImageFactory(TCHAR *basePath,
 	winWidth = theWinWidth;
 	winHeight = theWinHeight;
 
+	slideNames.resize(0);
+	int cnt = loadSlides(searchBase,limit);
+	currentName = slideNames.size();
+
 	// pick next slide
-	this->nextSlide(1);
+	this->nextSlide(1.0f);
 }
 
 /**
@@ -46,25 +50,24 @@ void ImageFactory::updateWinSize(int width, int height)
 	winHeight = height;
 }
 
-void ImageFactory::elapsedCheck(float sElapse, int nextSeconds)
+float ImageFactory::elapsedCheck(float sElapse, int nextSeconds, float fadeDur)
 {
 	this->sElapsed += sElapse;
 
-	if (this->sElapsed >= (float)nextSeconds)
-	{
-		nextSlide(1);
+	if (this->sElapsed >= (float)nextSeconds) {
+		nextSlide(fadeDur);
 	}
+	return this->sElapsed;
 }
 
 /**
 */
-void ImageFactory::nextSlide(int doFadeOut)
+void ImageFactory::nextSlide(float fadeDur)
 {
 	sElapsed = 0;	// reset elapsed time
 	if (currentName == slideNames.size())
 	{
-		slideNames.resize(0);
-		loadSlides(searchBase);
+		srand( (int)time(NULL) );
 		random_shuffle( slideNames.begin(), slideNames.end() );
 		currentName = 0;
 	}
@@ -73,7 +76,7 @@ void ImageFactory::nextSlide(int doFadeOut)
 		delete oldSlide;
 		oldSlide = NULL;
 	}
-	if (doFadeOut && theSlide)
+	if ((fadeDur != 0.0f) && theSlide)
 	{
 		oldSlide = theSlide;
 		oldSlide->setOld();
@@ -81,7 +84,7 @@ void ImageFactory::nextSlide(int doFadeOut)
 
 	// load new slide
 	if (!slideNames.empty())
-		theSlide = new Image( slideNames[ currentName ], maxWidth,maxHeight);
+		theSlide = new Image( slideNames[ currentName ], maxWidth,maxHeight, fadeDur);
 
 	// iterate to next slide
 	currentName++;
@@ -89,13 +92,14 @@ void ImageFactory::nextSlide(int doFadeOut)
 
 /**
 */
-int ImageFactory::drawSlide()
+int ImageFactory::drawSlide(float FPS)
 {
-	if (oldSlide && glIsEnabled(GL_BLEND))
-		oldSlide->Draw(winWidth, winHeight);
+	if (oldSlide && glIsEnabled(GL_BLEND)) {
+		oldSlide->Draw(winWidth, winHeight, FPS);
+	}
 
 	if (theSlide) {
-		theSlide->Draw(winWidth, winHeight);
+		theSlide->Draw(winWidth, winHeight, FPS);
 	}
 
 	return 0;
@@ -103,8 +107,13 @@ int ImageFactory::drawSlide()
 
 /**
 */
-void ImageFactory::loadSlides(tstring basePath)
+int ImageFactory::loadSlides(tstring basePath, int limit)
 {
+	int cnt = 0;
+	int newLimit = 0;
+
+	if (limit < 0) return 0;
+
 	if ( basePath.end()[ -1 ] != '/' )
 		basePath += '/';
 	WIN32_FIND_DATA fd;
@@ -112,12 +121,19 @@ void ImageFactory::loadSlides(tstring basePath)
 	if ( h != INVALID_HANDLE_VALUE ) {
 		bool done = false;
 		while ( !done ) {
-			if ( ( fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) == 0 )
+			if ( ( fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) == 0 ){
 				slideNames.push_back( basePath + fd.cFileName );
-			done = !FindNextFile( h, &fd );
+				cnt++;
+			}
+			if (limit && cnt == limit)
+				done = TRUE;
+			else 
+				done = !FindNextFile( h, &fd );
 		}
 		FindClose( h );
 	}
+//	if (limit && cnt == limit) return cnt;
+
 	h = FindFirstFile( ( basePath + _T("*") ).c_str(), &fd );
 	if ( h != INVALID_HANDLE_VALUE ) {
 		bool done = false;
@@ -126,10 +142,17 @@ void ImageFactory::loadSlides(tstring basePath)
 			if ( name != _T(".") && name != _T("..") )
 			{
 				if ( fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY )
-					loadSlides( basePath + fd.cFileName);
+				{
+					if (limit) newLimit = limit-cnt;
+					cnt += loadSlides( basePath + fd.cFileName, newLimit);
+				}
 			}
-			done = !FindNextFile( h, &fd );
+			if (limit && cnt == limit)
+				done = TRUE;
+			else
+				done = !FindNextFile( h, &fd );
 		}
 		FindClose( h );
 	}
+	return cnt;
 }
