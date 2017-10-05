@@ -388,7 +388,7 @@ void initControls(HWND hdlg)
 BOOL screenSaverConfigureDialog(HWND hdlg, UINT msg,
 										 WPARAM wpm, LPARAM lpm)
 {
-#if 0
+#if 1
 	int ival;
 	char cval[16];
 
