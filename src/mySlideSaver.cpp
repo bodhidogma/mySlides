@@ -347,7 +347,7 @@ void SlideSaver::initControls(HWND hDlg)
 	SendDlgItemMessage(hDlg, IDC_DISPTIME, TBM_SETLINESIZE, 0, LPARAM(1));
 	SendDlgItemMessage(hDlg, IDC_DISPTIME, TBM_SETPAGESIZE, 0, LPARAM(2));
 	SendDlgItemMessage(hDlg, IDC_DISPTIME, TBM_SETTICFREQ, 10, 0);
-	_snprintf(cval, 32, "%d Seconds", state.slideDuration);
+	_snprintf_s(cval, 32, "%d Seconds", state.slideDuration);
 	SendDlgItemMessageA(hDlg, IDC_DISPTIME_TEXT, WM_SETTEXT, 0, LPARAM(cval));
 
 	SendDlgItemMessage(hDlg, IDC_DIR_LIST, LB_ADDSTRING, 0, LPARAM(state.slidePaths[0].c_str()));
@@ -427,7 +427,7 @@ BOOL SlideSaver::saverConfigureDialog(HWND hDlg, UINT msg, WPARAM wpm, LPARAM lp
 		if (HWND(lpm) == GetDlgItem(hDlg, IDC_DISPTIME)) {
 			ival = SendDlgItemMessage(hDlg, IDC_DISPTIME, TBM_GETPOS, 0, 0);
 //			ival = (ival / 5) * 5;
-			_snprintf(cval, 32, "%d Seconds", ival);
+			_snprintf_s(cval, 32, "%d Seconds", ival);
 			SendDlgItemMessageA(hDlg, IDC_DISPTIME_TEXT, WM_SETTEXT, 0, LPARAM(cval));
 		}
 		return TRUE;

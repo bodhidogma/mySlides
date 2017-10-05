@@ -13,7 +13,8 @@ public:
 	cSaverDB();
 	~cSaverDB();
 
-	int open();
+	int open(const wchar_t *base_path);
+	int open() { return open(NULL); }
 	int close();
 	int exec(const char *sql);
 	int wexec(const wchar_t *sql);

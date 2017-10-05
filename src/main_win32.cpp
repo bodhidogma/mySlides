@@ -27,6 +27,8 @@ struct InitParams {
 	int			nCmdShow;
 	appMode		mode;
 	RECT		size;
+	LPWSTR		*szArglist;
+	int			nArgs;
 };
 
 int startApp(InitParams *ip);
@@ -47,33 +49,33 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	InitParams ip = {0};
 
 	int ret = 0;
-	LPWSTR *szArglist;
-	int nArgs;
+//	LPWSTR *szArglist;
+//	int nArgs;
 	int i;
 
 	ip.hParent = HWND_DESKTOP;
 	ip.hInstance = hInstance;
 	ip.nCmdShow = nCmdShow;
 
-	szArglist = CommandLineToArgvW(GetCommandLineW(), &nArgs);
-	for (i=1; szArglist && i<nArgs; i++) {
+	ip.szArglist = CommandLineToArgvW(GetCommandLineW(), &ip.nArgs);
+	for (i=1; ip.szArglist && i<ip.nArgs; i++) {
 		ret = i;
 		// win95 change password
-		if (!_wcsnicmp(L"/a", szArglist[i],2)) {
+		if (!_wcsnicmp(L"/a", ip.szArglist[i],2)) {
 			ret = -1;
 			break;
 		}
 		// saver settings dialog
-		else if (!_wcsnicmp(L"/c", szArglist[i],2)) {
+		else if (!_wcsnicmp(L"/c", ip.szArglist[i],2)) {
 			ip.hParent = GetForegroundWindow();
 			ip.mode = CFG_DIALOG;
 			ret = 0;
 			break;
 		}
 		// open preview window
-		else if (!_wcsnicmp(L"/p", szArglist[i],2)) {
-			if ((i+1)<nArgs) {
-				ip.hParent = (HWND)_wtoi(szArglist[i+1]);
+		else if (!_wcsnicmp(L"/p", ip.szArglist[i],2)) {
+			if ((i+1)<ip.nArgs) {
+				ip.hParent = (HWND)_wtoi(ip.szArglist[i+1]);
 				ip.mode = PREVIEW;
 			}
 			else 
@@ -81,23 +83,22 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			break;
 		}
 		// start saver
-		else if (!_wcsnicmp(L"/s", szArglist[i],2)) {
+		else if (!_wcsnicmp(L"/s", ip.szArglist[i],2)) {
 			ip.mode = FULLSCREEN; 
 			break;
 		}
 		// windowed saver (debugging)
-		else if (!wcsncmp(L"/w", szArglist[i],2)) {
+		else if (!wcsncmp(L"/w", ip.szArglist[i],2)) {
 			ip.mode = WINDOWED;
 			ip.size.right = 640;
 			ip.size.bottom = 480;
 			break;
 		}
 	}
-	LocalFree(szArglist);
-
 	if (ip.mode != NONE) {
 		ret = startApp( &ip );
 	}
+	LocalFree(ip.szArglist);
 	return ret;
 }
 
@@ -173,6 +174,7 @@ int loadSlides(cSaverDB *db, tstring basePath, const TCHAR *fileExt, int limit)
 }
 
 #define IMAGE_EXT_JPG _T("*.jpg")
+#define SYS_PATH_SEP L'\\'
 
 unsigned __stdcall FileScanProc(void *pData)
 {
@@ -180,9 +182,21 @@ unsigned __stdcall FileScanProc(void *pData)
 	cSaverDB db;
 	vector<tstring> slideNames;
 	wchar_t val[256] = {0};
+	InitParams *ip = (InitParams *)pData;
 
-	db.open();
+	wcscpy_s(val, 256, ip->szArglist[0]);
+	int p = wcslen(val);
+	while (p && val[p]!=SYS_PATH_SEP) p--;
+	if (p) {
+		val[p+1] = L'\0';
+	}
+	
+	if (ret = db.open(val)) {
+		// some kind of failure
+		return ret;
+	}
 
+	// some default config settigns to create
 	db.ConfigWrite(0,_T("slide_dur"),_T("10"));
 	db.ConfigWrite(0,_T("image_path.0"),IMAGE_PATH);
 
@@ -209,7 +223,7 @@ unsigned __stdcall SaverProc(void *pData)
 
 int startApp(InitParams *ip)
 {
-#if 0
+#if 1
 	SlideSaver *mySaver = {0};
 	if (ip->mode && (mySaver = new SlideSaver())) {
 		mySaver->setParent( ip->hParent );
@@ -234,7 +248,7 @@ int startApp(InitParams *ip)
 	int tc = 0;
 
 	hRunMutex = CreateMutex(NULL, TRUE, NULL);	// Set 
-	if ((hTh[tc] = (HANDLE)_beginthreadex( NULL, 0, FileScanProc, NULL, 0, &thId[tc])) == 0)
+	if ((hTh[tc] = (HANDLE)_beginthreadex( NULL, 0, FileScanProc, ip, 0, &thId[tc])) == 0)
 	{
 		tc = -1;	// error
 	}
@@ -331,7 +345,7 @@ int AppWindow::startApp(HWND hParent, HINSTANCE hInstance, int nCmdShow)
 int AppWindow::openConfigBox(HWND hParent, HINSTANCE inst)
 {
 	DialogBoxParam(inst,
-		MAKEINTRESOURCE(DLG_SCRNSAVECONFIGURE),
+		MAKEINTRESOURCE(IDD_SCRNSAVECONFIGURE),
 		hParent,
 		(DLGPROC)this->_staticDialogProc,
 		(LPARAM)this
@@ -345,7 +359,7 @@ BOOL AppWindow::registerWindowCB(HINSTANCE hInstance)
 {
 	WNDCLASSEX wcex = {0};
 
-	LoadString(hInstance, IDC_MYSLIDES, this->app.className, MAX_LOADSTRING);
+	LoadString(hInstance, IDS_MYSLIDES, this->app.className, MAX_LOADSTRING);
 	LoadString(hInstance, IDS_APP_TITLE, this->window.init.title, MAX_LOADSTRING);
 
 	if (this->app.isFullScreen) {
@@ -362,7 +376,7 @@ BOOL AppWindow::registerWindowCB(HINSTANCE hInstance)
 	wcex.cbClsExtra		= 0;
 	wcex.cbWndExtra		= 0;
 	wcex.hInstance		= hInstance;
-	wcex.hIcon			= LoadIcon(wcex.hInstance, MAKEINTRESOURCE(ID_APP));
+	wcex.hIcon			= LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_APPICON));
 //	wcex.hCursor		= LoadCursor(NULL, IDC_ARROW);
 //	wcex.hbrBackground	= (HBRUSH)(COLOR_WINDOW+1);				// default BG color
 	wcex.hbrBackground	= HBRUSH(GetStockObject(BLACK_BRUSH));	// default BG color

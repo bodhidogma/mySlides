@@ -24,9 +24,19 @@ cSaverDB::~cSaverDB()
 
 /**
 */
-int cSaverDB::open()
+int cSaverDB::open(const wchar_t *base_path)
 {
-	rc = sqlite3_open("myslides.db", &db);
+	char mb_path[256] = {0};
+	wchar_t path[256] = {0};
+	int len = 0;
+	if (base_path) {
+		wcscpy_s(path, 256, base_path);
+		len = wcslen(base_path);
+	}
+	wcscpy_s(&path[len], 256-len, L"mySlides.db");
+	len = WideCharToMultiByte(CP_UTF8, 0, path, -1, mb_path, 256, NULL, NULL);
+
+	rc = sqlite3_open(mb_path, &db);
 	if (rc) {
 		close();
 	}
